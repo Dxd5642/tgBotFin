@@ -18,6 +18,7 @@ class Users(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     actions: Mapped[List["Actions"]] = relationship(back_populates="user")
+    mountlysummary: Mapped[List["MountlySummary"]] = relationship(back_populates="user")
 
     def __repr__(self):
         return f"<Users(chat_id={self.chat_id}, username={self.username}, name={self.name}, second_name={self.second_name}, created_at={self.created_at})>"
@@ -35,7 +36,7 @@ class Status(Base):
     __tablename__ = "status"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    type: Mapped[bool]
+    type: Mapped[str]
 
 
 
@@ -51,4 +52,19 @@ class Actions(Base):
     user: Mapped["Users"] = relationship(back_populates="actions")
     status: Mapped["Status"] = relationship()
     check: Mapped["Checks"] = relationship()
+
+
+class MountlySummary(Base): # С каждым сообщением пользователя проверяем есть ли запись на месяц
+    __tablename__ = "mountlysummary"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    chat_id: Mapped[int] = mapped_column(ForeignKey("users.chat_id"))
+    year: Mapped[int]
+    month: Mapped[int]
+    total_income: Mapped[float] = mapped_column(default=0.0)
+    total_expense: Mapped[float] = mapped_column(default=0.0)
+    start_balance: Mapped[float]
+    end_balance: Mapped[float]
+
+    user: Mapped["Users"] = relationship(back_populates="mountlysummary")
 
