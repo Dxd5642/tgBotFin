@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, select, DateTime, func
+from sqlalchemy import create_engine, select, DateTime, func, desc
 from database.tables import *
 
 engine = None
@@ -83,29 +83,56 @@ init_database()
 
 # Работа с финансами
 
-def add_income(chat_id, value = 0, desc = None, date = datetime.now()):
+def add_income(chat_id, value = 0, desc = None, date = datetime.now(), status_id = 1):
     global engine
     with Session(engine) as session:
-        new_check = Checks(value=value, desc=desc)
-        session.add(new_check)
-        session.commit()
-
-        new_action = Actions(chat_id=chat_id, status_id=1, check_id=new_check.id, date=date)
+        new_action = Actions(chat_id=chat_id, status_id=status_id, value=value, desc=desc, date=date)
         session.add(new_action)
         session.commit()
+
 
 
 def add_expenses(chat_id, value = 0, desc = None, date = datetime.now()):
     global engine
     with Session(engine) as session:
-        new_check = Checks(value=value, desc=desc)
-        session.add(new_check)
-        session.commit()
-
-        new_action = Actions(chat_id=chat_id, status_id=0, check_id=new_check.id, date=date)
+        new_action = Actions(chat_id=chat_id, status_id=0, value=value, desc=desc, date=date)
         session.add(new_action)
         session.commit()
 
+
+def get_balance(chat_id, year, month):
+    global engine
+    with Session(engine) as session:
+        query = select(MountlySummary).where(MountlySummary.chat_id == chat_id , MountlySummary.year == int(year) , MountlySummary.month == int(month))
+        result = session.scalar(query)
+        return result.end_balance
+
+
+def update_month_notes(chat_id, type_act, value):
+        _, month, year,  = str(datetime.today().strftime("%d.%m.%Y")).split(".")
+        global engine
+        with Session(engine) as session:
+            mon_sum_note = session.query(MountlySummary).filter(MountlySummary.chat_id == chat_id , MountlySummary.year == int(year) , MountlySummary.month == int(month)).first()
+
+            if type_act:
+                mon_sum_note.total_income = mon_sum_note.total_income + value
+                mon_sum_note.end_balance = mon_sum_note.end_balance + value
+
+            else:
+                mon_sum_note.total_expense = mon_sum_note.total_expense - value
+                mon_sum_note.end_balance = mon_sum_note.end_balance - value
+
+            session.commit()
+            return mon_sum_note.end_balance
+
+
+def get_analytic_month_db(chat_id, year, month):
+    global engine
+    with Session(engine) as session:
+        mon_sum_note = session.query(MountlySummary).filter(MountlySummary.chat_id == chat_id , MountlySummary.year == int(year) , MountlySummary.month == int(month)).first()
+        total_income, total_expense, start_balance, end_balance = mon_sum_note.total_income, mon_sum_note.total_expense, mon_sum_note.start_balance, mon_sum_note.end_balance
+        session.commit()
+        return total_income, total_expense, start_balance, end_balance
 
 
 # Работа с пользователем
@@ -136,9 +163,27 @@ def registration(chat_id, username, name, second_name):
 def check_mountly_sum(chat_id):
     global engine
     with Session(engine) as session:
-        if session.scalar(MountlySummary).where(MountlySummary.chat_id == chat_id):
+        if session.scalar(MountlySummary).where(MountlySummary.chat_id == chat_id): # Сначала при сообщении проверяем есть ли текущий месяц в бл, если нет, то проверяем есть ли вообзе месяцы у пользователя, если есть, то берем баланс последнего и создаем новый
             return True
         return False
+
+
+def check_mountly_sum_this_month(chat_id):
+    global engine
+    _, month, year,  = str(datetime.today().strftime("%d.%m.%Y")).split(".")
+    with Session(engine) as session:
+        if session.scalar(select(MountlySummary).where(MountlySummary.chat_id == int(chat_id) , MountlySummary.year == int(year) , MountlySummary.month == int(month))):
+            return True
+        return False
+
+
+def get_last_month_user(chat_id):
+    global engine
+    with Session(engine) as session:
+        query = (select(MountlySummary).where(MountlySummary.chat_id == chat_id).order_by(desc(MountlySummary.year),desc(MountlySummary.month)).limit(1))
+        mon_sum_note = session.scalar(query)
+        total_income, total_expense, start_balance, end_balance = mon_sum_note.total_income, mon_sum_note.total_expense, mon_sum_note.start_balance, mon_sum_note.end_balance
+        return total_income, total_expense, start_balance, end_balance
 
 
 def create_mountly_sum(chat_id, value):
@@ -150,9 +195,9 @@ def create_mountly_sum(chat_id, value):
 
             new_month_sum = MountlySummary(
                 chat_id=chat_id, 
-                year=year, month=month,
+                year=int(year), month=int(month),
                 start_balance=value,
-                end_balance=0
+                end_balance=value
             )
 
             session.add(new_month_sum)

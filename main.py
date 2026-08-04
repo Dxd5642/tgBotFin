@@ -16,7 +16,7 @@ from aiogram.fsm.context import FSMContext
 
 from btns import *
 from database import datebase
-from services import reg_user
+from services import reg_user, handler_just_message, get_balance_user, get_analytic_month
 from states import Registr
 
 
@@ -27,7 +27,7 @@ db = Dispatcher()
 
 async def set_main_commands(bot: Bot):
     main_commands = [
-        BotCommand(command="/start", description="Запустить / перезапустить бота / открыть меню"),
+        BotCommand(command="/start", description="Запустить бота"),
         BotCommand(command="/menu", description="Открыть меню"),
     ]
     await bot.set_my_commands(main_commands)
@@ -36,9 +36,9 @@ async def set_main_commands(bot: Bot):
 @db.message(Command("start", "menu"))
 async def menu_func(message: Message, state: FSMContext):
     if datebase.authentication(int(message.chat.id)):
-        await message.answer("Главное меню: \nВыберите следующее действие", reply_markup=get_btn_menu())
+        await message.answer("🧰 Главное меню: \nВыберите следующее действие:", reply_markup=get_btn_menu())
     else:
-        await message.answer("Добро пожаловать в бота для отслеживания своих доходов и расходов!\nПеред началом использования бота, вам необхлдимо написаит ваш изначальный баланс")
+        await message.answer("👋 Добро пожаловать в бота для отслеживания своих доходов и расходов!\n\n❗ Перед началом использования бота, вам необходимо написать ваш изначальный баланс: ")
         await state.set_state(Registr.waiting_balance)
 
 
@@ -51,13 +51,13 @@ async def callback_reg(message: Message, state: FSMContext):
 
 @db.callback_query(F.data.startswith("analytic_month"))
 async def callback_sometging(callback: CallbackQuery):
-    await callback.message.edit_text("📊 Аналитика за месяц:\n\n📅 Отчет за Август 2026\n🟢 Доходы: 85 000 ₽\n🔴 Расходы: 42 300 ₽\n💰 Чистый результат: +42 700 ₽", reply_markup=get_btn_back())
+    await callback.message.edit_text(get_analytic_month(callback.from_user.id), reply_markup=get_btn_back())
     await callback.answer()
 
 
 @db.callback_query(F.data.startswith("my_balance"))
 async def callback_sometging(callback: CallbackQuery):
-    await callback.message.edit_text("💳 Мой баланс\n\n💳 Текущий баланс: 124 500 ₽", reply_markup=get_btn_back())
+    await callback.message.edit_text(get_balance_user(callback.from_user.id), reply_markup=get_btn_back())
     await callback.answer()
 
 
@@ -77,17 +77,22 @@ async def callback_sometging(callback: CallbackQuery):
     await callback.answer()
 
 
+
 @db.callback_query(F.data.startswith("back"))
 async def callback_sometging(callback: CallbackQuery):
     await callback.message.edit_text("Главное меню: \nВыберите следующее действие", reply_markup=get_btn_menu())
     await callback.answer()
 
+
+
 @db.message()
-async def main_func(message: Message):
-    text = str(message.text).replace(" ", "-=-", 1)
-    text = text.split("-=-")
-    mes = f"✅ {"Расход" if "+" not in text[0] else "Доход"}: {text[0]}₽\n💳 Баланс: 10000₽"
-    await message.answer(mes)
+async def main_func(message: Message, state: FSMContext):
+    if datebase.authentication(int(message.chat.id)):
+            await message.answer(handler_just_message(message), reply_markup=get_btn_for_just_message())
+    else:
+        await message.answer("Добро пожаловать в бота для отслеживания своих доходов и расходов!\nПеред началом использования бота, вам необхлдимо написаит ваш изначальный баланс")
+        await state.set_state(Registr.waiting_balance)
+    
 
 
 

@@ -8,6 +8,7 @@ class Base(DeclarativeBase):
     pass
 
 
+
 class Users(Base):
     __tablename__ = "users"
 
@@ -23,13 +24,6 @@ class Users(Base):
     def __repr__(self):
         return f"<Users(chat_id={self.chat_id}, username={self.username}, name={self.name}, second_name={self.second_name}, created_at={self.created_at})>"
 
-
-class Checks(Base):
-    __tablename__ = "checks"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    value: Mapped[float]
-    desc: Mapped[str] = mapped_column(default="Прочие доходы")
  
 
 class Status(Base):
@@ -46,12 +40,13 @@ class Actions(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     chat_id: Mapped[int] = mapped_column(ForeignKey("users.chat_id"))
     status_id: Mapped[int] = mapped_column(ForeignKey("status.id"))
-    check_id: Mapped[int] = mapped_column(ForeignKey("checks.id"))
+    value: Mapped[float]
+    desc: Mapped[str] = mapped_column(default="Прочие доходы")
     date: Mapped[datetime] = mapped_column(server_default=func.now())
 
     user: Mapped["Users"] = relationship(back_populates="actions")
     status: Mapped["Status"] = relationship()
-    check: Mapped["Checks"] = relationship()
+
 
 
 class MountlySummary(Base): # С каждым сообщением пользователя проверяем есть ли запись на месяц
