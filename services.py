@@ -1,6 +1,7 @@
 from database.datebase import add_income, add_expenses, registration, create_mountly_sum, get_balance, update_month_notes, get_analytic_month_db, check_mountly_sum_this_month, check_mountly_sum, get_last_month_user
 from datetime import datetime
 import calendar
+import re
 
 
 def get_name_month(num):
@@ -15,8 +16,19 @@ def handler_just_message(message):
         create_mountly_sum(message.chat.id, end_balance)
 
 
-    #TODO Сдесь сначала проверка на месяц "440 перевод на карту 04.04"
     text = str(message.text)
+
+    date = datetime.now()
+    pattern = r"\d{2}.\d{2}"
+
+    match = re.search(pattern, text)
+    if match:
+        date = match.group()
+    else:
+        pass
+
+    text = text.replace(date, "")
+
     flag_space = True
     if " " not in text:
         if not text.replace("+", "").isdigit():
@@ -38,7 +50,7 @@ def handler_just_message(message):
             value = text[0]
             desc = "Прочие доходы"
 
-        add_income(message.chat.id, value, desc)
+        add_income(message.chat.id, value, desc, date)
         balance = update_month_notes(message.chat.id, True, float(value))
 
         return f"✅    ✅    ✅    ✅    ✅\n\n📈 Доход: {value} руб.\n\n✍️Описание: {desc}\n\n💰 Текущий баланс: {balance}\n\n✅    ✅    ✅    ✅    ✅"
@@ -55,7 +67,7 @@ def handler_just_message(message):
             value = text[0]
             desc = "Прочие расходы"
 
-        add_expenses(message.chat.id, value, desc)
+        add_expenses(message.chat.id, value, desc, date)
         balance = update_month_notes(message.chat.id, False, float(value))
 
         return f"❌    ❌    ❌    ❌    ❌\n\n📉 Расход: {value} руб.\n\n✍️ Описание: {desc}\n\n💰 Текущий баланс: {balance} руб.\n\n❌    ❌    ❌    ❌    ❌"

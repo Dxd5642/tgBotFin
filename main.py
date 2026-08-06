@@ -18,6 +18,7 @@ from btns import *
 from database import datebase
 from services import reg_user, handler_just_message, get_balance_user, get_analytic_month
 from states import Registr
+from generate_excel import generate_excel_report
 
 
 
@@ -59,6 +60,16 @@ async def callback_sometging(callback: CallbackQuery):
 async def callback_sometging(callback: CallbackQuery):
     await callback.message.edit_text(get_balance_user(callback.from_user.id), reply_markup=get_btn_back())
     await callback.answer()
+
+
+@db.callback_query(F.data.startswith("report_order"))
+async def callback_sometging(callback: CallbackQuery):
+    await callback.message.edit_text("📊 Формирую ваш отчет, подождите...")
+
+    excel_file = generate_excel_report(callback.from_user.id)
+
+    await callback.message.answer_document(document=excel_file,
+    caption="Ваша полная выписка расходов и доходов в формате Excel 📑")
 
 
 @db.callback_query(F.data.startswith("last_checks"))

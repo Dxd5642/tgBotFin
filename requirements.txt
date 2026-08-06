@@ -1,3 +1,5 @@
 aiogram
 sqlalchemy
 dotenv
+pandas
+openpyxl
