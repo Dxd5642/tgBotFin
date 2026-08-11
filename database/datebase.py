@@ -2,6 +2,7 @@ from datetime import datetime, date
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, select, DateTime, func, desc
 from database.tables import *
+from categories import *
 
 engine = None
 
@@ -17,6 +18,15 @@ def init_database():
 
         stats = [Status(type="Списание"), Status(type="Пополнение"), Status(type="Стартовый капитал")]
         session.add_all(stats)
+        session.commit()
+
+        categories = []
+        for cat_name in CATEGORIES_KEYWORDS:
+            categories.append(Category(name=cat_name))
+        categories.append(Category(name=NEW_BALANCE_CATEGORY))
+        categories.append(Category(name=DEFAULT_CATEGORY))
+
+        session.add_all(categories)
         session.commit()
 
     print("База данных успешно инициализирована!")
@@ -83,19 +93,19 @@ init_database()
 
 # Работа с финансами
 
-def add_income(chat_id, value = 0, desc = None, date = datetime.now(), status_id = 1):
+def add_income(chat_id, value = 0, desc = None, date = datetime.now(), status_id = 1, cat = None):
     global engine
     with Session(engine) as session:
-        new_action = Actions(chat_id=chat_id, status_id=status_id, value=value, desc=desc, date=date)
+        new_action = Actions(chat_id=chat_id, status_id=status_id, value=value, desc=desc, date=date, category_id=cat)
         session.add(new_action)
         session.commit()
 
 
 
-def add_expenses(chat_id, value = 0, desc = None, date = datetime.now()):
+def add_expenses(chat_id, value = 0, desc = None, date = datetime.now(), cat = None):
     global engine
     with Session(engine) as session:
-        new_action = Actions(chat_id=chat_id, status_id=0, value=value, desc=desc, date=date)
+        new_action = Actions(chat_id=chat_id, status_id=0, value=value, desc=desc, date=date, category_id=cat)
         session.add(new_action)
         session.commit()
 
@@ -205,3 +215,14 @@ def create_mountly_sum(chat_id, value):
             return True
     except Exception as e:
         return False
+
+
+def get_category_id(cat_name):
+    global engine
+
+    with Session(engine) as session:
+        category = session.query(Category).filter_by(name=cat_name).first()
+
+        return category.id
+
+

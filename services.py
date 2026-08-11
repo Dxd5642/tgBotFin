@@ -1,7 +1,9 @@
-from database.datebase import add_income, add_expenses, registration, create_mountly_sum, get_balance, update_month_notes, get_analytic_month_db, check_mountly_sum_this_month, check_mountly_sum, get_last_month_user
+from database.datebase import add_income, add_expenses, registration, create_mountly_sum, get_balance, update_month_notes, get_analytic_month_db, check_mountly_sum_this_month, check_mountly_sum, get_last_month_user, get_category_id
 from datetime import datetime
 import calendar
 import re
+from rapidfuzz import process, fuzz
+from categories import *
 
 
 def get_name_month(num):
@@ -61,12 +63,14 @@ def handler_just_message_get_all_value(message):
             text = text.replace(" ", "=-=", 1).split("=-=")
             value = text[0].replace("+", "")
             desc = text[1] or "Прочие доходы"
+            cat = detect_category_name(desc)
         else:
             text = text.replace(" ", "=-=", 1).split("=-=")
             value = text[0]
             desc = "Прочие доходы"
+            cat = detect_category_name(desc)
 
-        return True, value, desc, date, chat_id
+        return True, value, desc, date, chat_id, cat
 
 
     else:
@@ -75,31 +79,34 @@ def handler_just_message_get_all_value(message):
             text = text.replace(" ", "=-=", 1).split("=-=")
             value = text[0]
             desc = text[1] or "Прочие расходы"
+            cat = detect_category_name(desc)
         else:
             text = text.replace(" ", "=-=", 1).split("=-=")
             value = text[0]
             desc = "Прочие расходы"
+            cat = detect_category_name(desc)
 
-        return False, value, desc, date, chat_id
+        return False, value, desc, date, chat_id, cat
 
 
 def handler_just_message(message):
     try:
-        type_check, value, desc, date, chat_id = None, None, None, None, None
+        type_check, value, desc, date, chat_id, cat = None, None, None, None, None, DEFAULT_CATEGORY
         if isinstance(message, tuple):
-            type_check, value, desc, date, chat_id = message
+            type_check, value, desc, date, chat_id, cat = message
         else:
-            type_check, value, desc, date, chat_id = handler_just_message_get_all_value(message) 
+            type_check, value, desc, date, chat_id, cat = handler_just_message_get_all_value(message) 
 
         date = datetime.strptime(date, "%d.%m.%Y")
+        cat_id = get_category_id(cat)
         if type_check:
-            add_income(chat_id, value, desc, date)
+            add_income(chat_id, value, desc, date, cat=cat_id)
             balance = update_month_notes(chat_id, True, float(value))
-            return f"✅    ✅    ✅    ✅    ✅\n\n🎟️ Создан новый чек на {date}\n\n📈 Доход: {value} руб.\n\n✍️Описание: {desc}\n\n💰 Текущий баланс: {balance}\n\n✅    ✅    ✅    ✅    ✅"
+            return f"✅    ✅    ✅    ✅    ✅\n\n🎟️ Создан новый чек на {date}\n\n📈 Доход: {value} руб.\n\n✍️Описание: {desc}\n\n📚 Категория: {cat}\n\n💰 Текущий баланс: {balance}\n\n✅    ✅    ✅    ✅    ✅"
         else:
-            add_expenses(chat_id, value, desc, date)
+            add_expenses(chat_id, value, desc, date, cat_id) #TODO Сделать возможность менять категорию на нужную
             balance = update_month_notes(chat_id, False, float(value))
-            return f"❌    ❌    ❌    ❌    ❌\n\n🎟️ Создан новый чек на {date}\n\n📉 Расход: {value} руб.\n\n✍️ Описание: {desc}\n\n💰 Текущий баланс: {balance} руб.\n\n❌    ❌    ❌    ❌    ❌"
+            return f"❌    ❌    ❌    ❌    ❌\n\n🎟️ Создан новый чек на {date}\n\n📉 Расход: {value} руб.\n\n✍️ Описание: {desc}\n\n📚 Категория: {cat}\n\n💰 Текущий баланс: {balance} руб.\n\n❌    ❌    ❌    ❌    ❌"
 
     except Exception as e:
         return str(e)
@@ -137,9 +144,34 @@ def reg_user(message):
     chat_id = res
 
     res = create_mountly_sum(res, value)
+    cat_id = get_category_id(NEW_BALANCE_CATEGORY)
     if res:
-        add_income(chat_id, value, "Первоначальный баланс", status_id=3)
-        return "✅ Регистрация прошла успешно!!\n\т😁 Теперь вам доступно главное меню по команде \\menu\n❗ Для добавления расхода просто напишите сумму и описание, для дохода добавьте '+' перед суммой. \n\n👻 Если вы не напишите описание, то будет выбрана категория: \n'Прочие расходы'"
+        add_income(chat_id, value, "Первоначальный баланс", status_id=3, cat=cat_id)
+        return "✅ Регистрация прошла успешно!!\n\n😁 Теперь вам доступно главное меню по команде \\menu\n\n❗ Для добавления расхода просто напишите сумму и описание, для дохода добавьте '+' перед суммой. \n\n👻 Если вы не напишите описание, то будет выбрана категория: \n'Прочие расходы'"
 
     return "Ошибка регистрации, попробуйте позже!"
 
+
+
+def detect_category_name(desc):
+    if not desc:
+        return DEFAULT_CATEGORY
+
+    words = desc.lower().split()
+
+    for word in words:
+        for cat_name, keywords in CATEGORIES_KEYWORDS.items():
+            if word in keywords:
+                return cat_name
+
+
+    for word in word:
+        if len(word) < 3:
+            continue
+
+        for cat_name, keyword in CATEGORIES_KEYWORDS.items():
+            match = process.extractOne(word, keywords, scorer=fuzz.ratio)
+            if match and match[1] >= 80:
+                return cat_name
+
+    return DEFAULT_CATEGORY

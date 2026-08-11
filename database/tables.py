@@ -42,14 +42,25 @@ class Actions(Base):
     status_id: Mapped[int] = mapped_column(ForeignKey("status.id"))
     value: Mapped[float]
     desc: Mapped[str] = mapped_column(default="Прочие доходы")
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
     date: Mapped[datetime] = mapped_column(server_default=func.now())
 
+
     user: Mapped["Users"] = relationship(back_populates="actions")
+    category:Mapped["Category"] = relationship(back_populates="actions")
     status: Mapped["Status"] = relationship()
 
 
+class Category(Base):
+    __tablename__ = "categories"
 
-class MountlySummary(Base): # С каждым сообщением пользователя проверяем есть ли запись на месяц
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(unique=True)
+
+    actions: Mapped["Actions"] = relationship(back_populates="category")
+
+
+class MountlySummary(Base):
     __tablename__ = "mountlysummary"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -62,4 +73,5 @@ class MountlySummary(Base): # С каждым сообщением пользо�
     end_balance: Mapped[float]
 
     user: Mapped["Users"] = relationship(back_populates="mountlysummary")
+
 

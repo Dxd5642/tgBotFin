@@ -98,9 +98,9 @@ async def callback_sometging(callback: CallbackQuery):
 @db.callback_query(F.data.startswith("create_check_true"))
 async def callback_sometging(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    type_order, value, desc, date, chat_id = data.get("type_order"), data.get("value"), data.get("desc"), data.get("date"), data.get("chat_id")
+    type_order, value, desc, date, chat_id, cat = data.get("type_order"), data.get("value"), data.get("desc"), data.get("date"), data.get("chat_id"), data.get("cat")
     await state.clear()
-    await callback.message.edit_text(handler_just_message((type_order, value, desc, date, chat_id)), reply_markup=get_btn_for_just_message())
+    await callback.message.edit_text(handler_just_message((type_order, value, desc, date, chat_id, cat)), reply_markup=get_btn_for_just_message())
     await callback.answer()
 
 
@@ -123,9 +123,9 @@ async def callback_sometging(callback: CallbackQuery, state: FSMContext):
 @db.message(AgreeCreateCheck.action_edit)
 async def callback_reg(message: Message, state: FSMContext):
     try:
-        type_order, value, desc, date, chat_id = handler_just_message_get_all_value(message)
+        type_order, value, desc, date, chat_id, cat = handler_just_message_get_all_value(message)
         await state.clear()
-        await message.answer(handler_just_message((type_order, value, desc, date, chat_id)), reply_markup=get_btn_for_just_message())
+        await message.answer(handler_just_message((type_order, value, desc, date, chat_id, cat)), reply_markup=get_btn_for_just_message())
         
     except:
         await message.answer("Вы не ввели данные не в правильном фармате!\n\nПожалуйста, введите данные в формате:\n{Сумма} {Описание} {Дата}")
@@ -136,14 +136,14 @@ async def callback_reg(message: Message, state: FSMContext):
 async def main_func(message: Message, state: FSMContext):
     if datebase.authentication(int(message.chat.id)):
             try:
-                type_order, value, desc, date, chat_id = handler_just_message_get_all_value(message)
-                await message.answer(f"📥 Новая транзакция\n\n├ 📅 Дата: {date}\n├ 📝 Описание: {desc}\n├ {'🔴 Тип: Расход' if not type_order else '🟢 Тип: Доход'}\n└ 💰 Сумма: {value} ₽\n\n📌 Всё указано верно?", reply_markup=get_btn_for_create_check())
+                type_order, value, desc, date, chat_id, cat = handler_just_message_get_all_value(message)
+                await message.answer(f"📥 Новая транзакция\n\n├ 📅 Дата: {date}\n├ 📝 Описание: {desc}\n├ 📚 Категория: {cat}\n├ {'🔴 Тип: Расход' if not type_order else '🟢 Тип: Доход'}\n└ 💰 Сумма: {value} ₽\n\n📌 Всё указано верно?", reply_markup=get_btn_for_create_check())
                 await state.set_state(AgreeCreateCheck.waiting_action)
-                await state.update_data(type_order = type_order, value = value, desc = desc, date = date, chat_id = chat_id)
+                await state.update_data(type_order = type_order, value = value, desc = desc, date = date, chat_id = chat_id, cat = cat)
 
             except Exception as e:
-                mes = str(e)
-                await message.answer(mes) #TODO Убрать ошибку в чат и сделать норм сообщение
+                mes = "😭 Произошло ошибка на сервее, пожалуйста попробуйте позже!"
+                await message.answer(mes) #
     else:
         await message.answer("Добро пожаловать в бота для отслеживания своих доходов и расходов!\nПеред началом использования бота, вам необхлдимо написаит ваш изначальный баланс")
         await state.set_state(Registr.waiting_balance)
