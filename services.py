@@ -10,33 +10,49 @@ def get_name_month(num):
     return months[num]
 
 
-def handler_just_message(message):
+def handler_just_message_get_all_value(message):
     if not check_mountly_sum_this_month(message.chat.id):
         total_income, total_expense, start_balance, end_balance = get_last_month_user(message.chat.id)
         create_mountly_sum(message.chat.id, end_balance)
 
 
     text = str(message.text)
+    chat_id = message.chat.id
 
-    date = datetime.now()
-    pattern = r"\d{2}.\d{2}"
+    date = datetime.today().strftime("%d.%m.%Y")
 
-    match = re.search(pattern, text)
-    if match:
-        date = match.group()
-    else:
-        pass
+    pattern3 = r"\d{2}\.\d{2}\.\d{4}"
+    pattern2 = r"\d{2}\.\d{2}\.\d{2}"
+    pattern1 = r"\d{2}\.\d{2}"
 
-    text = text.replace(date, "")
+    found_date = None
+
+    if match := re.search(pattern3, text):
+        found_date = match.group()
+        date = found_date
+    elif match := re.search(pattern2, text):
+        found_date = match.group()
+        date = found_date
+    elif match := re.search(pattern1, text):
+        found_date = match.group()
+        date = f"{found_date}.{datetime.today().year}"
+
+    if found_date:
+        text = text.replace(found_date, "")
+
+    text = text.strip()
+
+    if str(date).count(".") == 1: date = f"{date}.{datetime.today().strftime("%Y")}"
+    if str(date).count(".") == 2 and len(date) == 8: date[-2] = str(datetime.today().strftime("%Y"))
 
     flag_space = True
     if " " not in text:
         if not text.replace("+", "").isdigit():
-            return "❌ Не удалось обработать ваше сообщение!\n\n✍️ Введите сумму и описание в виде: \n1500 перевод боссу"
+            raise ValueError(f"❌ Не удалось обработать ваше сообщение!\n\n✍️ Введите сумму и описание в виде: \n1500 перевод боссу 04.04")
         else:
             flag_space = False
     elif not text.split(" ")[0].replace("+", "").isdigit():
-        return "❌ Не удалось обработать ваше сообщение!\n\n✍️ Введите сумму и описание в виде: \n1500 перевод боссу"
+        raise ValueError("❌ Не удалось обработать ваше сообщение!\n\n✍️ Введите сумму и описание в виде: \n1500 перевод боссу 04.04")
 
 
     if "+" in text:
@@ -50,10 +66,7 @@ def handler_just_message(message):
             value = text[0]
             desc = "Прочие доходы"
 
-        add_income(message.chat.id, value, desc, date)
-        balance = update_month_notes(message.chat.id, True, float(value))
-
-        return f"✅    ✅    ✅    ✅    ✅\n\n📈 Доход: {value} руб.\n\n✍️Описание: {desc}\n\n💰 Текущий баланс: {balance}\n\n✅    ✅    ✅    ✅    ✅"
+        return True, value, desc, date, chat_id
 
 
     else:
@@ -67,10 +80,32 @@ def handler_just_message(message):
             value = text[0]
             desc = "Прочие расходы"
 
-        add_expenses(message.chat.id, value, desc, date)
-        balance = update_month_notes(message.chat.id, False, float(value))
+        return False, value, desc, date, chat_id
 
-        return f"❌    ❌    ❌    ❌    ❌\n\n📉 Расход: {value} руб.\n\n✍️ Описание: {desc}\n\n💰 Текущий баланс: {balance} руб.\n\n❌    ❌    ❌    ❌    ❌"
+
+def handler_just_message(message):
+    try:
+        type_check, value, desc, date, chat_id = None, None, None, None, None
+        if isinstance(message, tuple):
+            type_check, value, desc, date, chat_id = message
+        else:
+            type_check, value, desc, date, chat_id = handler_just_message_get_all_value(message) 
+
+        date = datetime.strptime(date, "%d.%m.%Y")
+        if type_check:
+            add_income(chat_id, value, desc, date)
+            balance = update_month_notes(chat_id, True, float(value))
+            return f"✅    ✅    ✅    ✅    ✅\n\n🎟️ Создан новый чек на {date}\n\n📈 Доход: {value} руб.\n\n✍️Описание: {desc}\n\n💰 Текущий баланс: {balance}\n\n✅    ✅    ✅    ✅    ✅"
+        else:
+            add_expenses(chat_id, value, desc, date)
+            balance = update_month_notes(chat_id, False, float(value))
+            return f"❌    ❌    ❌    ❌    ❌\n\n🎟️ Создан новый чек на {date}\n\n📉 Расход: {value} руб.\n\n✍️ Описание: {desc}\n\n💰 Текущий баланс: {balance} руб.\n\n❌    ❌    ❌    ❌    ❌"
+
+    except Exception as e:
+        return str(e)
+        return "😭 Произошла ошибка на стороне бота, пожалуйста, поробуйте позже("
+
+
 
 
 def get_balance_user(chat_id):

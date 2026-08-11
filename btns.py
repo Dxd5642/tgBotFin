@@ -35,3 +35,16 @@ def get_btn_for_just_message():
     )
 
     return builder.as_markup()
+
+
+def get_btn_for_create_check():
+    builder = InlineKeyboardBuilder()
+        
+    builder.add(
+        InlineKeyboardButton(text="✅ Все верно", callback_data="create_check_true"),
+        InlineKeyboardButton(text="✏️ Редактировать", callback_data="create_check_edit"),
+        InlineKeyboardButton(text="❌ Отменить", callback_data="create_check_false"),
+    )
+
+    builder.adjust(1)
+    return builder.as_markup()
