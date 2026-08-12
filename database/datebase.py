@@ -225,4 +225,10 @@ def get_category_id(cat_name):
 
         return category.id
 
+def get_category_of_id(cat_id):
+    global engine
 
+    with Session(engine) as session:
+        category = session.query(Category).filter_by(id=cat_id).first()
+
+        return category.name

@@ -97,9 +97,6 @@ CATEGORIES_KEYWORDS = {
     ]
 }
 
-# Категория по умолчанию, если ничего не подошло
-DEFAULT_CATEGORY = "Прочее"
 
 NEW_BALANCE_CATEGORY = "Первоначальный баланс"
-# Категория по умолчанию, если ничего не подошло
 DEFAULT_CATEGORY = "Прочее"

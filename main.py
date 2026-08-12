@@ -120,13 +120,34 @@ async def callback_sometging(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
+@db.callback_query(F.data.startswith("create_check_category_edit"))
+async def callback_sometging(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(AgreeCreateCheck.action_edit_category)
+    data = await state.get_data()
+    type_order, value, desc, date, chat_id, cat = data.get("type_order"), data.get("value"), data.get("desc"), data.get("date"), data.get("chat_id"), data.get("cat")
+    await callback.message.edit_text(f"📥 Выбор категории для новой транзакции\nИмеющиеся данные:\n\n├ 📅 Дата: {date}\n├ 📝 Описание: {desc}\n├ {'🔴 Тип: Расход' if not type_order else '🟢 Тип: Доход'}\n└ 💰 Сумма: {value} ₽\n\n⬇️Выберите категорию из предложенных ниже:⬇️", reply_markup=get_btn_for_edit_cat())
+    await callback.answer()
+
+
+
+@db.callback_query(F.data.startswith("create_check_cat_edit_"))
+async def callback_sometging(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(AgreeCreateCheck.waiting_action)
+    data = await state.get_data()
+    type_order, value, desc, date, chat_id, cat = data.get("type_order"), data.get("value"), data.get("desc"), data.get("date"), data.get("chat_id"), data.get("cat")
+    cat = datebase.get_category_of_id(int(callback.data.split("_")[-1]))
+    await state.update_data(cat = cat)
+    await callback.message.edit_text(f"📥 Новая транзакция\n\n├ 📅 Дата: {date}\n├ 📝 Описание: {desc}\n├ {'🔴 Тип: Расход' if not type_order else '🟢 Тип: Доход'}\n└ 💰 Сумма: {value} ₽\n\n📚 Выбранная категория: \n{cat}\n\n📌 Всё указано верно?", reply_markup=get_btn_for_create_check())
+    await callback.answer()
+
+
 @db.message(AgreeCreateCheck.action_edit)
 async def callback_reg(message: Message, state: FSMContext):
     try:
         type_order, value, desc, date, chat_id, cat = handler_just_message_get_all_value(message)
-        await state.clear()
-        await message.answer(handler_just_message((type_order, value, desc, date, chat_id, cat)), reply_markup=get_btn_for_just_message())
-        
+        await message.answer(f"📥 Новая транзакция\n\n├ 📅 Дата: {date}\n├ 📝 Описание: {desc}\n├ {'🔴 Тип: Расход' if not type_order else '🟢 Тип: Доход'}\n└ 💰 Сумма: {value} ₽\n\n📚 Автоматически выбранная категория: \n{cat}\n\n📌 Всё указано верно?", reply_markup=get_btn_for_create_check())
+        await state.set_state(AgreeCreateCheck.waiting_action)
+        await state.update_data(type_order = type_order, value = value, desc = desc, date = date, chat_id = chat_id, cat = cat)
     except:
         await message.answer("Вы не ввели данные не в правильном фармате!\n\nПожалуйста, введите данные в формате:\n{Сумма} {Описание} {Дата}")
     
@@ -137,7 +158,7 @@ async def main_func(message: Message, state: FSMContext):
     if datebase.authentication(int(message.chat.id)):
             try:
                 type_order, value, desc, date, chat_id, cat = handler_just_message_get_all_value(message)
-                await message.answer(f"📥 Новая транзакция\n\n├ 📅 Дата: {date}\n├ 📝 Описание: {desc}\n├ 📚 Категория: {cat}\n├ {'🔴 Тип: Расход' if not type_order else '🟢 Тип: Доход'}\n└ 💰 Сумма: {value} ₽\n\n📌 Всё указано верно?", reply_markup=get_btn_for_create_check())
+                await message.answer(f"📥 Новая транзакция\n\n├ 📅 Дата: {date}\n├ 📝 Описание: {desc}\n├ {'🔴 Тип: Расход' if not type_order else '🟢 Тип: Доход'}\n└ 💰 Сумма: {value} ₽\n\n📚 Автоматически выбранная категория: \n{cat}\n\n📌 Всё указано верно?", reply_markup=get_btn_for_create_check())
                 await state.set_state(AgreeCreateCheck.waiting_action)
                 await state.update_data(type_order = type_order, value = value, desc = desc, date = date, chat_id = chat_id, cat = cat)
 
@@ -166,4 +187,4 @@ async def start_bot():
         print("Телеграм-бот остановлен")
 
 
-asyncio.run(start_bot())
+asyncio.run(start_bot())  #TODO Сделать просмотр последних чеков, и данных по этим чекам, а также улучшить меню аналитика за месяц

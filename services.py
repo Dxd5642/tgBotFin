@@ -102,13 +102,13 @@ def handler_just_message(message):
         if type_check:
             add_income(chat_id, value, desc, date, cat=cat_id)
             balance = update_month_notes(chat_id, True, float(value))
-            return f"✅    ✅    ✅    ✅    ✅\n\n🎟️ Создан новый чек на {date}\n\n📈 Доход: {value} руб.\n\n✍️Описание: {desc}\n\n📚 Категория: {cat}\n\n💰 Текущий баланс: {balance}\n\n✅    ✅    ✅    ✅    ✅"
+            return f"✅    ✅    ✅    ✅    ✅\n\n🎟️ Создан новый чек на {date.strftime("%d.%m.%Y")}\n\n📈 Доход: {value} руб.\n\n✍️Описание: {desc}\n\n📚 Категория: {cat}\n\n💰 Текущий баланс: {balance}\n\n✅    ✅    ✅    ✅    ✅"
         else:
-            add_expenses(chat_id, value, desc, date, cat_id) #TODO Сделать возможность менять категорию на нужную
+            add_expenses(chat_id, value, desc, date, cat_id)
             balance = update_month_notes(chat_id, False, float(value))
-            return f"❌    ❌    ❌    ❌    ❌\n\n🎟️ Создан новый чек на {date}\n\n📉 Расход: {value} руб.\n\n✍️ Описание: {desc}\n\n📚 Категория: {cat}\n\n💰 Текущий баланс: {balance} руб.\n\n❌    ❌    ❌    ❌    ❌"
+            return f"❌    ❌    ❌    ❌    ❌\n\n🎟️ Создан новый чек на {date.strftime("%d.%m.%Y")}\n\n📉 Расход: {value} руб.\n\n✍️ Описание: {desc}\n\n📚 Категория: {cat}\n\n💰 Текущий баланс: {balance} руб.\n\n❌    ❌    ❌    ❌    ❌"
 
-    except Exception as e:
+    except EOFError as e:
         return str(e)
         return "😭 Произошла ошибка на стороне бота, пожалуйста, поробуйте позже("
 

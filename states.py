@@ -8,3 +8,4 @@ class AgreeCreateCheck(StatesGroup):
     action_true = State()
     action_false = State()
     action_edit = State()
+    action_edit_category = State()
