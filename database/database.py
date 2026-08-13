@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, select, DateTime, func, desc
+from sqlalchemy import create_engine, select, DateTime, func, desc, extract
 from database.tables import *
 from categories import *
 
@@ -145,6 +145,20 @@ def get_analytic_month_db(chat_id, year, month):
         return total_income, total_expense, start_balance, end_balance
 
 
+def get_all_checks(chat_id, month, year):
+    global engine
+
+    with Session(engine) as session:
+        query = (select(Actions).where(Actions.chat_id == chat_id, extract("year", Actions.date) == year, extract("month", Actions.date) == month).order_by(Actions.date))
+        checks = session.scalars(query).all()
+
+        acts = []
+        for chk in checks:
+            acts.append((chk.status_id, chk.value, chk.category_id, chk.date, chk.desc))
+
+        return acts
+
+
 # Работа с пользователем
 
 def authentication(chat_id):
@@ -232,3 +246,13 @@ def get_category_of_id(cat_id):
         category = session.query(Category).filter_by(id=cat_id).first()
 
         return category.name
+
+
+def get_top_expense_cat(chat_id):
+    global engine
+
+    with Session(engine) as session:
+        cats = (select(Category.name, func.sum(Actions.value).label("total_sum")).select_from(Actions).join(Category, Actions.category_id == Category.id).where(Actions.chat_id == chat_id, Actions.status_id == 0).group_by(Category.name).order_by(desc("total_sum")))
+        res = session.execute(cats).all()
+
+        return res

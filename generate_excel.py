@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime
 from aiogram.types import BufferedInputFile
 from sqlalchemy.orm import Session
-from database import datebase
+from database import database
 from database.tables import *
 from sqlalchemy.orm import Session
 
@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 def generate_excel_report(chat_id: int) -> BufferedInputFile:
     """Генерирует Excel файл в памяти и возвращает объект для aiogram"""
-    with Session(datebase.engine) as session:
+    with Session(database.engine) as session:
         records = (
             session.query(
                 Actions.date,

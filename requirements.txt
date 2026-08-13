@@ -4,3 +4,4 @@ dotenv
 pandas
 openpyxl
 rapidfuzz
+matplotlib

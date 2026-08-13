@@ -10,12 +10,12 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 
 from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message, CallbackQuery, BotCommand
+from aiogram.types import Message, CallbackQuery, BotCommand, BufferedInputFile
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
 from btns import *
-from database import datebase
+from database import database
 from services import reg_user, handler_just_message, handler_just_message_get_all_value, get_analytic_month, get_balance_user, get_analytic_month
 from states import Registr, AgreeCreateCheck
 from generate_excel import generate_excel_report
@@ -36,7 +36,7 @@ async def set_main_commands(bot: Bot):
 
 @db.message(Command("start", "menu"))
 async def menu_func(message: Message, state: FSMContext):
-    if datebase.authentication(int(message.chat.id)):
+    if database.authentication(int(message.chat.id)):
         await message.answer("🧰 Главное меню: \nВыберите следующее действие:", reply_markup=get_btn_menu())
     else:
         await message.answer("👋 Добро пожаловать в бота для отслеживания своих доходов и расходов!\n\n❗ Перед началом использования бота, вам необходимо написать ваш изначальный баланс: ")
@@ -52,7 +52,11 @@ async def callback_reg(message: Message, state: FSMContext):
 
 @db.callback_query(F.data.startswith("analytic_month"))
 async def callback_sometging(callback: CallbackQuery):
-    await callback.message.edit_text(get_analytic_month(callback.from_user.id), reply_markup=get_btn_back())
+    message, chart_buffer = get_analytic_month(callback.from_user.id)
+
+    photo_file = BufferedInputFile(chart_buffer.getvalue(), filename="balance_chart.png")
+    await callback.message.delete()
+    await callback.message.answer_photo(caption=message, reply_markup=get_btn_back(), parse_mode="HTML", photo = photo_file)
     await callback.answer()
 
 
@@ -91,7 +95,16 @@ async def callback_sometging(callback: CallbackQuery):
 
 @db.callback_query(F.data.startswith("back"))
 async def callback_sometging(callback: CallbackQuery):
-    await callback.message.edit_text("Главное меню: \nВыберите следующее действие", reply_markup=get_btn_menu())
+    msg = callback.message
+    text = "Главное меню: \nВыберите следующее действие"
+
+    if msg.photo:
+        await msg.delete()
+        await msg.answer(text=text, reply_markup=get_btn_menu())
+
+    else:
+        await msg.edit_text(text=text, reply_markup=get_btn_menu())
+    
     await callback.answer()
 
 
@@ -135,7 +148,7 @@ async def callback_sometging(callback: CallbackQuery, state: FSMContext):
     await state.set_state(AgreeCreateCheck.waiting_action)
     data = await state.get_data()
     type_order, value, desc, date, chat_id, cat = data.get("type_order"), data.get("value"), data.get("desc"), data.get("date"), data.get("chat_id"), data.get("cat")
-    cat = datebase.get_category_of_id(int(callback.data.split("_")[-1]))
+    cat = database.get_category_of_id(int(callback.data.split("_")[-1]))
     await state.update_data(cat = cat)
     await callback.message.edit_text(f"📥 Новая транзакция\n\n├ 📅 Дата: {date}\n├ 📝 Описание: {desc}\n├ {'🔴 Тип: Расход' if not type_order else '🟢 Тип: Доход'}\n└ 💰 Сумма: {value} ₽\n\n📚 Выбранная категория: \n{cat}\n\n📌 Всё указано верно?", reply_markup=get_btn_for_create_check())
     await callback.answer()
@@ -155,7 +168,7 @@ async def callback_reg(message: Message, state: FSMContext):
 
 @db.message()
 async def main_func(message: Message, state: FSMContext):
-    if datebase.authentication(int(message.chat.id)):
+    if database.authentication(int(message.chat.id)):
             try:
                 type_order, value, desc, date, chat_id, cat = handler_just_message_get_all_value(message)
                 await message.answer(f"📥 Новая транзакция\n\n├ 📅 Дата: {date}\n├ 📝 Описание: {desc}\n├ {'🔴 Тип: Расход' if not type_order else '🟢 Тип: Доход'}\n└ 💰 Сумма: {value} ₽\n\n📚 Автоматически выбранная категория: \n{cat}\n\n📌 Всё указано верно?", reply_markup=get_btn_for_create_check())
@@ -187,4 +200,4 @@ async def start_bot():
         print("Телеграм-бот остановлен")
 
 
-asyncio.run(start_bot())  #TODO Сделать просмотр последних чеков, и данных по этим чекам, а также улучшить меню аналитика за месяц
+asyncio.run(start_bot())  #TODO Сделать просмотр последних чеков, и данных по этим чекам
