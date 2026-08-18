@@ -1,4 +1,4 @@
-from database.database import add_income, add_expenses, registration, create_mountly_sum, get_balance, update_month_notes, get_analytic_month_db, check_mountly_sum_this_month, check_mountly_sum, get_last_month_user, get_category_id, get_top_expense_cat
+from database.database import add_income, add_expenses, registration, create_mountly_sum, get_balance, update_month_notes, get_analytic_month_db, check_mountly_sum_this_month, check_mountly_sum, get_last_month_user, get_category_id, get_top_expense_cat, get_all_checks, get_one_check, get_category_of_id
 from datetime import datetime
 import calendar
 import re
@@ -205,3 +205,15 @@ def detect_category_name(desc):
                 return cat_name
 
     return DEFAULT_CATEGORY
+
+
+def get_info_order(order_id):
+    order = get_one_check(order_id)[0]
+
+    date = order[3].strftime("%d.%m.%Y %H:%M").split(" ")
+    if date[1] != "00:00": date[1] = f"в {date[1]}"
+    else: date[1] = ""
+    cat = get_category_of_id(order[2])
+    text=f"🧾 Информация о чеке от 18.08.2026\n\n📌 Категория: {cat}\n📝 Описание: {order[4]}\n💰 Сумма: {float(order[1]):,.0f} ₽\n📊 Тип: {'🔴 Расход' if order[0] == 0 else '🟢 Доход'}\n📅 Дата: {date[0]} в {date[1]}"
+
+    return text

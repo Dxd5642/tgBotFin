@@ -154,10 +154,22 @@ def get_all_checks(chat_id, month, year):
 
         acts = []
         for chk in checks:
-            acts.append((chk.status_id, chk.value, chk.category_id, chk.date, chk.desc))
+            acts.append((chk.status_id, chk.value, chk.category_id, chk.date, chk.desc, chk.id))
 
         return acts
 
+
+def get_one_check(check_id):
+    global engine
+    
+    with Session(engine) as session:
+        query = (select(Actions).where(Actions.id == check_id))
+        chk = session.scalars(query).first()
+
+        acts = []
+        acts.append((chk.status_id, chk.value, chk.category_id, chk.date, chk.desc, chk.id))
+
+        return acts
 
 # Работа с пользователем
 

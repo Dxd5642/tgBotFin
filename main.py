@@ -16,7 +16,7 @@ from aiogram.fsm.context import FSMContext
 
 from btns import *
 from database import database
-from services import reg_user, handler_just_message, handler_just_message_get_all_value, get_analytic_month, get_balance_user, get_analytic_month
+from services import reg_user, handler_just_message, handler_just_message_get_all_value, get_analytic_month, get_balance_user, get_analytic_month, get_info_order
 from states import Registr, AgreeCreateCheck
 from generate_excel import generate_excel_report
 
@@ -24,6 +24,9 @@ from generate_excel import generate_excel_report
 
 bot = Bot(token=str(BOT_TOKEN))
 db = Dispatcher()
+
+
+user_view_order_state = {}
 
 
 async def set_main_commands(bot: Bot):
@@ -72,15 +75,31 @@ async def callback_sometging(callback: CallbackQuery):
 
     excel_file = generate_excel_report(callback.from_user.id)
 
+    await callback.message.edit_text("👍 Ваш отчет успешно сформирован!")
     await callback.message.answer_document(document=excel_file,
     caption="Ваша полная выписка расходов и доходов в формате Excel 📑")
 
 
 @db.callback_query(F.data.startswith("last_checks"))
 async def callback_sometging(callback: CallbackQuery):
-    await callback.message.edit_text("📜 Последние операции:\n\n02.08 — 350 ₽ (кофе) ❌\n02.08 — 1 200 ₽ (продукты) ❌\n01.08 — +15 000 ₽ (фриланс) ❌", reply_markup=get_btn_back())
+    markup = get_orders_of_month(callback.message.chat.id, 0)
+    await callback.message.edit_text("⬇️⬇️⬇️ Выберите чек ⬇️⬇️⬇️", reply_markup=markup)
     await callback.answer()
 
+
+@db.callback_query(F.data.startswith("orders_page_"))
+async def callback_sometging(callback: CallbackQuery):
+    current_page = int(callback.data.replace("orders_page_", ""))
+    markup = get_orders_of_month(callback.message.chat.id, current_page)
+    await callback.message.edit_text("⬇️⬇️⬇️ Выберите чек ⬇️⬇️⬇️", reply_markup=markup)
+    await callback.answer()
+
+@db.callback_query(F.data.startswith("view_desc_order_"))
+async def callback_sometging(callback: CallbackQuery):
+    order_id, current_page = callback.data.replace("view_desc_order_", "").split("_page_")
+    order = get_info_order(order_id)
+    await callback.message.edit_text(text=order, reply_markup=get_orders_back(current_page))
+    await callback.answer()
 
 @db.callback_query(F.data.startswith("settings"))
 async def callback_sometging(callback: CallbackQuery):
@@ -200,4 +219,4 @@ async def start_bot():
         print("Телеграм-бот остановлен")
 
 
-asyncio.run(start_bot())  #TODO Сделать просмотр последних чеков, и данных по этим чекам
+asyncio.run(start_bot())

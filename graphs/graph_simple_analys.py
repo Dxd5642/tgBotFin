@@ -17,16 +17,15 @@ def create_action_list(chat_id, date):
     daily_totals = defaultdict(float)
 
     for act in checks:
-        act_type = act[0]   # 0 — расход, 1 — доход
-        amount = act[1]     # сумма
-        act_date = act[3]   # дата (объект datetime/date)
+        act_type = act[0]  
+        amount = act[1]     
+        act_date = act[3]  
 
         if act_type == 0:
             daily_totals[act_date] -= amount
         elif act_type == 1:
             daily_totals[act_date] += amount
 
-    # Преобразуем словарь в нужный формат списка словарей
     actions = [
         {'date': act_date, 'value': day_sum}
         for act_date, day_sum in daily_totals.items()
@@ -67,8 +66,8 @@ def generate_balance_chart(start_balance: float, actions: list) -> io.BytesIO: #
     fig.autofmt_xdate() # Поворачиваем даты под углом, чтобы не накладывались
 
     ax.axhline(
-        y=start_balance,       
-        color='#e74c3c',         
+        y=start_balance,
+        color='#e74c3c',     
         linestyle='--',         
         linewidth=1.8,          
         alpha=0.9,               
