@@ -16,7 +16,7 @@ from aiogram.fsm.context import FSMContext
 
 from btns import *
 from database import database
-from services import reg_user, handler_just_message, handler_just_message_get_all_value, get_analytic_month, get_balance_user, get_analytic_month, get_info_order
+from services import reg_user, handler_just_message, handler_just_message_get_all_value, get_analytic_month, get_balance_user, get_analytic_month, get_info_order, get_all_reserve
 from states import Registr, AgreeCreateCheck
 from generate_excel import generate_excel_report
 
@@ -78,6 +78,8 @@ async def callback_sometging(callback: CallbackQuery):
     await callback.message.edit_text("👍 Ваш отчет успешно сформирован!")
     await callback.message.answer_document(document=excel_file,
     caption="Ваша полная выписка расходов и доходов в формате Excel 📑")
+    await callback.message.answer("🧰 Главное меню: \nВыберите следующее действие:", reply_markup=get_btn_menu())
+
 
 
 @db.callback_query(F.data.startswith("last_checks"))
@@ -127,12 +129,34 @@ async def callback_sometging(callback: CallbackQuery):
     await callback.answer()
 
 
+# ========== Создание резерва ===========
+
+
+@db.callback_query(F.data.startswith("reserve_budget"))
+async def callback_open_reserve_budget(callback: CallbackQuery):
+    text, resevs = get_all_reserve(callback.message.chat.id)
+
+    # Возвращение с кнопочками get_reserve_menu 
+    await callback.message.edit_text(text=text, reply_markup=get_reserve_menu(resevs))
+    await callback.answer()
+
+
+@db.callback_query(F.data.startswith("get_reserve_by_id_"))
+async def callback_open_reserve_budget(callback: CallbackQuery):
+    text = "Ну работает крч"
+
+    # Возвращение с кнопочками get_reserve_menu 
+    await callback.message.edit_text(text=text, reply_markup=get_btn_menu())
+    await callback.answer()
+# =======================================
+
+
 @db.callback_query(F.data.startswith("create_check_true"))
 async def callback_sometging(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     type_order, value, desc, date, chat_id, cat = data.get("type_order"), data.get("value"), data.get("desc"), data.get("date"), data.get("chat_id"), data.get("cat")
     await state.clear()
-    await callback.message.edit_text(handler_just_message((type_order, value, desc, date, chat_id, cat)), reply_markup=get_btn_for_just_message())
+    await callback.message.edit_text(handler_just_message((type_order, value, desc, date, chat_id, cat)), reply_markup=get_btn_menu())
     await callback.answer()
 
 
@@ -220,3 +244,7 @@ async def start_bot():
 
 
 asyncio.run(start_bot())
+
+
+#TODO переделать картинку при аналитике за месяц, там дата не праивльно
+#TODO доделать excel файл, а именно 3 и 4 листы

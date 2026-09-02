@@ -93,7 +93,7 @@ init_database()
 
 # Работа с финансами
 
-def add_income(chat_id, value = 0, desc = None, date = datetime.now(), status_id = 1, cat = None):
+def add_income(chat_id, value = 0, desc = None, date = datetime.now(), status_id = 2, cat = None):
     global engine
     with Session(engine) as session:
         new_action = Actions(chat_id=chat_id, status_id=status_id, value=value, desc=desc, date=date, category_id=cat)
@@ -105,7 +105,7 @@ def add_income(chat_id, value = 0, desc = None, date = datetime.now(), status_id
 def add_expenses(chat_id, value = 0, desc = None, date = datetime.now(), cat = None):
     global engine
     with Session(engine) as session:
-        new_action = Actions(chat_id=chat_id, status_id=0, value=value, desc=desc, date=date, category_id=cat)
+        new_action = Actions(chat_id=chat_id, status_id=1, value=value, desc=desc, date=date, category_id=cat)
         session.add(new_action)
         session.commit()
 
@@ -268,3 +268,68 @@ def get_top_expense_cat(chat_id):
         res = session.execute(cats).all()
 
         return res
+
+
+def create_reserve_budget(chat_id, category_id, amount, start_date, end_date):
+    global engine
+
+    if amount <= 0:
+        raise ValueError("Сумма резерва должна быть больше нуля")
+
+    if end_date < start_date:
+        raise ValueError("Дата окончания не может быть раньше даты начала")
+
+    with Session(engine) as session:
+        reserv = ReservetBudget(chat_id=chat_id, category_id=category_id, amount=amount, start_date=start_date, end_date=end_date)
+        session.add(reserv)
+        session.commit()
+
+
+def get_reserve_budget(chat_id, category_id):
+    global engine
+
+    with Session(engine) as session:
+        reserv = (select(ReservetBudget).where(ReservetBudget.chat_id == chat_id, ReservetBudget.category_id == category_id))
+        res = session.execute(reserv).first()
+
+        return (res.amount, res.category_id, res.start_date, res.end_date)
+
+def get_all_reserve_budget(chat_id):
+    global engine
+    
+    with Session(engine) as session:
+        query = (
+            select(
+                ReservetBudget.amount,
+                ReservetBudget.category_id,
+                ReservetBudget.start_date,
+                ReservetBudget.end_date,
+                Category.name,
+                ReservetBudget.id).join(Category,ReservetBudget.category_id == Category.id).where(ReservetBudget.chat_id == chat_id))
+        results = session.scalars(query).all()
+
+        reservs = []
+        for res in results:
+            reservs.append((res.amount, res.category_id, res.start_date, res.end_date, res.name))
+
+        return reservs
+
+def get_checks_for_period_of_categories(chat_id, category_id, start_date, end_date):
+    global engine
+
+    with Session(engine) as session:
+        query = (select(Actions).where(Actions.chat_id == chat_id, 
+                                       Actions.category_id == category_id,
+                                        Actions.status_id == 1, 
+                                        Actions.date >= start_date,
+                                        Actions.date <= end_date,
+                                        ).order_by(Actions.date))
+        checks = session.scalars(query).all()
+
+        orders = []
+        for chk in checks:
+            orders.append((chk.status_id, chk.value, chk.category_id, chk.date, chk.desc, chk.id))
+
+        return orders
+
+    

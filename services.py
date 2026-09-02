@@ -1,4 +1,4 @@
-from database.database import add_income, add_expenses, registration, create_mountly_sum, get_balance, update_month_notes, get_analytic_month_db, check_mountly_sum_this_month, check_mountly_sum, get_last_month_user, get_category_id, get_top_expense_cat, get_all_checks, get_one_check, get_category_of_id
+from database.database import add_income, add_expenses, registration, create_mountly_sum, get_balance, update_month_notes, get_analytic_month_db, check_mountly_sum_this_month, check_mountly_sum, get_last_month_user, get_category_id, get_top_expense_cat, get_all_checks, get_one_check, get_category_of_id, get_checks_for_period_of_categories, get_reserve_budget, get_all_reserve_budget
 from datetime import datetime
 import calendar
 import re
@@ -217,3 +217,78 @@ def get_info_order(order_id):
     text=f"🧾 Информация о чеке от 18.08.2026\n\n📌 Категория: {cat}\n📝 Описание: {order[4]}\n💰 Сумма: {float(order[1]):,.0f} ₽\n📊 Тип: {'🔴 Расход' if order[0] == 0 else '🟢 Доход'}\n📅 Дата: {date[0]} в {date[1]}"
 
     return text
+
+# === Работа с резервом ===
+
+# Создание резерва: выбор категории и указание лимита
+def create_reserve(chat_id, category_id, amount):
+    pass
+
+# Получение списка резервов
+def get_all_reserve(chat_id):
+    reservs = get_all_reserve_budget(chat_id)
+
+    if len(reservs) == 0:
+        return "Список пуст 😥", []
+
+    mes = "⬇️ Созданные зарезервированные счета: ⬇️", reservs
+
+# Нужна функция для получения всей информации по какому либо резерву, в ней будем получать основные данные и подготавливать обратное сообщение
+# Нужна функция для получения информации по дневным лимитам
+
+def get_reserved_spent(chat_id, start_date, end_date, category_id):
+    orders = get_checks_for_period_of_categories(chat_id, category_id, start_date, end_date)
+
+    spent = 0.0
+
+    for i in orders:
+        value = i[1]
+        spent += float(value)
+
+    return spent
+
+def get_reserved_budget_info(chat_id, category_id):
+    today = datetime.today()
+    reserve = get_reserve_budget(chat_id, category_id)
+
+    spent = get_reserved_spent(chat_id, reserve[2], reserve[3], category_id)
+    amount = reserve[0]
+    remaining = max(0, amount - spent)
+
+    if today < reserve[2]:
+        days_left = (reserve[3] - reserve[2]).days + 1
+        current_day_limit = (remaining / days_left if days_left > 0 else 0.0)
+        spent_today = 0.0
+        today_available = 0.0
+
+    elif today > reserve[3]:
+        days_left = 0
+        current_day_limit = 0.0
+        spent_today = 0.0
+        today_available = 0.0
+
+    else:
+        days_left = (reserve[3] - today).days + 1
+        current_day_limit = (remaining / days_left if days_left > 0 else 0.0)
+        records_today = get_reserved_spent(chat_id, today, today, category_id)
+        today_available = max(0.0, current_day_limit - records_today)
+
+    return {
+        "amount": amount,
+        "spent": spent,
+        "remaining": remaining,
+        "days_left": days_left,
+        "daily_limit": current_day_limit,
+        "spent_today": spent_today,
+        "today_available": today_available,
+        "start_date": reserve[2], 
+        "end_date": reserve[3]
+    }
+
+
+def get_reserved_budget_of_cat(chat_id, category):
+    cat_id = get_category_id(category)
+
+    res_info = get_reserved_budget_info(chat_id, cat_id)
+
+    mess = f"🔒 Зарезервированные деньги\n\n{category}\n💰 Выделено: {res_info["amount"]} ₽\n💸 Потрачено: {res_info["spent"]} ₽\n💵 Осталось: {res_info["remaining"]} ₽\n\n📅 Период:\n{res_info["start_date"]} — {res_info["end_date"]}\n\n📆 Осталось дней: {res_info["days_left"]}\n🎯 Сегодня можно: {res_info["daily_limit"]} ₽\n🛒 Потрачено сегодня: {res_info["spent_today"]} ₽\n✅ Осталось на сегодня: {res_info["today_available"]} ₽"

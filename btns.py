@@ -13,7 +13,8 @@ def get_btn_menu():
     builder.add(
         InlineKeyboardButton(text="📊 Аналитика за месяц", callback_data="analytic_month"),
         InlineKeyboardButton(text="💳 Мой баланс", callback_data="my_balance"),
-        InlineKeyboardButton(text="📔 Заказать отчет по чекам", callback_data="report_order"),
+        InlineKeyboardButton(text="🔏 Зарезервированные счета", callback_data="reserve_budget"),
+        InlineKeyboardButton(text="📔 Заказать отчет по чекам за этот месяц", callback_data="report_order"),
         InlineKeyboardButton(text="📜 Последние операции", callback_data="last_checks"),
         # InlineKeyboardButton(text="⚙️ Настройки", callback_data="settings"),
     )
@@ -108,4 +109,23 @@ def get_orders_back(current_page):
 
     builder.add(InlineKeyboardButton(text="↩️ Вернуться к списку", callback_data=f"orders_page_{current_page}"))
 
+    return builder.as_markup()
+
+
+def get_reserve_menu(reserves):
+    builder = InlineKeyboardBuilder()
+
+    for reserve in reserves:
+        cat_name = reserve[-2]
+        res_id = reserve[-1]
+        builder.add(
+            InlineKeyboardButton(text=f"💈 {cat_name} 💈", callback_data=f"get_reserve_by_id_{res_id}"),
+        )
+
+    builder.add(
+        InlineKeyboardButton(text="✏️ Добавить новый счет", callback_data="create_new_reserve"),
+        InlineKeyboardButton(text="↩️ Вернуться назад", callback_data="back")
+    )
+
+    builder.adjust(1)
     return builder.as_markup()

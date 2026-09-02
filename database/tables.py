@@ -20,6 +20,7 @@ class Users(Base):
 
     actions: Mapped[List["Actions"]] = relationship(back_populates="user")
     mountlysummary: Mapped[List["MountlySummary"]] = relationship(back_populates="user")
+    reservetbudget: Mapped[List["ReservetBudget"]] = relationship(back_populates="user")
 
     def __repr__(self):
         return f"<Users(chat_id={self.chat_id}, username={self.username}, name={self.name}, second_name={self.second_name}, created_at={self.created_at})>"
@@ -58,6 +59,7 @@ class Category(Base):
     name: Mapped[str] = mapped_column(unique=True)
 
     actions: Mapped["Actions"] = relationship(back_populates="category")
+    reservetbudget: Mapped["ReservetBudget"] = relationship(back_populates="category")
 
 
 class MountlySummary(Base):
@@ -75,3 +77,16 @@ class MountlySummary(Base):
     user: Mapped["Users"] = relationship(back_populates="mountlysummary")
 
 
+class ReservetBudget(Base):
+    __tablename__ = "reservetbudget"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    chat_id: Mapped[int] = mapped_column(ForeignKey("users.chat_id"))
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
+    amount: Mapped[float] = mapped_column(default=0.0)
+    start_date: Mapped[datetime]
+    end_date: Mapped[datetime]
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    user: Mapped["Users"] = relationship(back_populates="reservetbudget")
+    category: Mapped["Category"] = relationship(back_populates="reservetbudget")
