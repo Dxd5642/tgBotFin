@@ -11,4 +11,6 @@ class AgreeCreateCheck(StatesGroup):
     action_edit_category = State()
 
 class CreateReserveBudget(StatesGroup):
+    waiting_cat = State()
     waiting_balance = State()
+    waiting_date = State()

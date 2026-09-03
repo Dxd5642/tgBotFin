@@ -1,4 +1,4 @@
-from database.database import add_income, add_expenses, registration, create_mountly_sum, get_balance, update_month_notes, get_analytic_month_db, check_mountly_sum_this_month, check_mountly_sum, get_last_month_user, get_category_id, get_top_expense_cat, get_all_checks, get_one_check, get_category_of_id, get_checks_for_period_of_categories, get_reserve_budget, get_all_reserve_budget
+from database.database import * 
 from datetime import datetime
 import calendar
 import re
@@ -221,15 +221,19 @@ def get_info_order(order_id):
 # === Работа с резервом ===
 
 # Создание резерва: выбор категории и указание лимита
-def create_reserve(chat_id, category_id, amount):
-    pass
+def create_reserve(chat_id, category_id, amount, dates):
+    try:
+        create_reserve_budget(chat_id, category_id, amount, dates[0], dates[1])
+        return "Зарезервированный счет успешно создан!"
+    except:
+        return "При создании зарезервированного счета произошло ошибка("
 
 # Получение списка резервов
 def get_all_reserve(chat_id):
     reservs = get_all_reserve_budget(chat_id)
 
     if len(reservs) == 0:
-        return "Список пуст 😥", []
+        return "На данный момент список пуст 😥", []
 
     mes = "⬇️ Созданные зарезервированные счета: ⬇️", reservs
 
@@ -292,3 +296,21 @@ def get_reserved_budget_of_cat(chat_id, category):
     res_info = get_reserved_budget_info(chat_id, cat_id)
 
     mess = f"🔒 Зарезервированные деньги\n\n{category}\n💰 Выделено: {res_info["amount"]} ₽\n💸 Потрачено: {res_info["spent"]} ₽\n💵 Осталось: {res_info["remaining"]} ₽\n\n📅 Период:\n{res_info["start_date"]} — {res_info["end_date"]}\n\n📆 Осталось дней: {res_info["days_left"]}\n🎯 Сегодня можно: {res_info["daily_limit"]} ₽\n🛒 Потрачено сегодня: {res_info["spent_today"]} ₽\n✅ Осталось на сегодня: {res_info["today_available"]} ₽"
+
+
+def is_valid_date(value: str) -> bool:
+    for fmt in ("%d.%m.%y", "%d.%m.%Y"):
+        try:
+            datetime.strptime(value, fmt)
+            return True
+        except ValueError:
+            pass
+
+def parse_date(value: str):
+    for fmt in ("%d.%m.%y", "%d.%m.%Y"):
+        try:
+            return datetime.strptime(value, fmt).date()
+        except ValueError:
+            pass
+
+    return None
