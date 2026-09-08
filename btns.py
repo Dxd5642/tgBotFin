@@ -84,10 +84,10 @@ def get_orders_of_month(chat_id, current_page, ords_on_page = 5):
 
     for order in orders:
         date = order[3].strftime("%d.%m.%Y %H:%M").split(" ")
-        stat = "🟢" if order[0] != 0 else "🔴"
+        stat = "🟢" if order[0] != 1 else "🔴"
         builder.add(
             InlineKeyboardButton(
-                text=f"{stat} Чек на {'+' if order[0] != 0 else '-'}{float(order[1]):,.0f} ₽ от {date[0]} {stat}",
+                text=f"{stat} Чек на {'+' if order[0] != 1 else '-'}{float(order[1]):,.0f} ₽ от {date[0]} {stat}",
                 callback_data=f"view_desc_order_{order[5]}_page_{current_page}"
             )
         )
@@ -119,7 +119,7 @@ def get_reserve_menu(reserves):
         cat_name = reserve[-2]
         res_id = reserve[-1]
         builder.add(
-            InlineKeyboardButton(text=f"💈 {cat_name} 💈", callback_data=f"get_reserve_by_id_{res_id}"),
+            InlineKeyboardButton(text=f"💈 {cat_name}: {reserve[2].strftime("%d.%m.%y")} - {reserve[3].strftime("%d.%m.%y")} 📆", callback_data=f"get_reserve_by_id_{res_id}"),
         )
 
     builder.add(
@@ -146,7 +146,7 @@ def get_cat_for_create_reserve():
 def get_cancel_btn_reserve():
     builder = InlineKeyboardBuilder()
 
-    InlineKeyboardButton(text="❌ Отмена ❌", callback_data="create_reserve_choise_cat_cancel")
+    builder.add(InlineKeyboardButton(text="❌ Отмена ❌", callback_data="create_reserve_choise_cat_cancel"))
 
     return builder.as_markup()
 
@@ -161,3 +161,53 @@ def get_agree_btns_create_reserve():
 
     builder.adjust(1)
     return builder.as_markup()
+
+
+def get_btn_for_choised_reserve(reserv_id):
+    builder = InlineKeyboardBuilder()
+
+    builder.add(
+        InlineKeyboardButton(text="➕ Пополнить резерв", callback_data=f"reserve_add_amount_{reserv_id}"),
+        InlineKeyboardButton(text="📆 Продлить счет", callback_data=f"reserve_change_date_{reserv_id}"),
+        InlineKeyboardButton(text="🗑️ Удалить", callback_data=f"reserve_delete_{reserv_id}"),
+        InlineKeyboardButton(text="↩️ Вернуться назад", callback_data="reserve_budget"),
+    )
+    builder.adjust(1)
+    return builder.as_markup()
+
+def get_btns_after_delete_reserv():
+    builder = InlineKeyboardBuilder()
+    
+    builder.add(
+        InlineKeyboardButton(text="Хорошо", callback_data="reserve_budget")
+    )
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_btns_delete_action_agree():
+    builder = InlineKeyboardBuilder()
+    
+    builder.add(
+        InlineKeyboardButton(text="✅ Да, удалить", callback_data="reserve_action_delete_true"),
+        InlineKeyboardButton(text="❌ Нет, не удалять", callback_data="reserve_action_delete_false")
+    )
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_btn_cancel_change_date_reserv(res_id):
+    builder = InlineKeyboardBuilder()
+
+    builder.add(InlineKeyboardButton(text="❌ Отмена ❌", callback_data=f"cancel_change_date_for_reserve_{res_id}"))
+
+    return builder.as_markup()
+
+
+def get_btn_retern_after_change_date_reserv(res_id):
+    builder = InlineKeyboardBuilder()
+
+    builder.add(InlineKeyboardButton(text="↩️ Вернуться назад", callback_data=f"get_reserve_by_id_{res_id}"))
+
+    return builder.as_markup()
+

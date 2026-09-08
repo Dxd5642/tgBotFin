@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, select, DateTime, func, desc, extract
+from sqlalchemy import create_engine, select, DateTime, func, desc, extract, delete, update
 from database.tables import *
 from categories import *
 
@@ -194,6 +194,20 @@ def registration(chat_id, username, name, second_name):
         return False
 
 
+def get_users():
+    global engine
+    with Session(engine) as session:
+        query = (select(Users.chat_id))
+        res = session.execute(query).all()
+
+        users = []
+        for i in res:
+            users.append((i.chat_id))
+
+        return users
+
+
+
 # Проверка месячной истории
 
 def check_mountly_sum(chat_id):
@@ -285,14 +299,20 @@ def create_reserve_budget(chat_id, category_id, amount, start_date, end_date):
         session.commit()
 
 
-def get_reserve_budget(chat_id, category_id):
+def get_reserve_budget(chat_id, reserve_id):
     global engine
 
     with Session(engine) as session:
-        reserv = (select(ReservetBudget).where(ReservetBudget.chat_id == chat_id, ReservetBudget.category_id == category_id))
+        reserv = (select(ReservetBudget.amount,
+                ReservetBudget.category_id,
+                ReservetBudget.start_date,
+                ReservetBudget.end_date,
+                Category.name,
+                ReservetBudget.id,).join(Category, ReservetBudget.category_id == Category.id).where(ReservetBudget.chat_id == chat_id, ReservetBudget.id == reserve_id))
         res = session.execute(reserv).first()
 
-        return (res.amount, res.category_id, res.start_date, res.end_date)
+        return (res.amount, res.category_id, res.start_date, res.end_date, res.name, res.id)
+    
 
 def get_all_reserve_budget(chat_id):
     global engine
@@ -305,12 +325,12 @@ def get_all_reserve_budget(chat_id):
                 ReservetBudget.start_date,
                 ReservetBudget.end_date,
                 Category.name,
-                ReservetBudget.id).join(Category,ReservetBudget.category_id == Category.id).where(ReservetBudget.chat_id == chat_id))
-        results = session.scalars(query).all()
+                ReservetBudget.id).join(Category, ReservetBudget.category_id == Category.id).where(ReservetBudget.chat_id == chat_id))
+        results = session.execute(query).all()
 
         reservs = []
         for res in results:
-            reservs.append((res.amount, res.category_id, res.start_date, res.end_date, res.name))
+            reservs.append((res.amount, res.category_id, res.start_date, res.end_date, res.name, res.id))
 
         return reservs
 
@@ -318,13 +338,19 @@ def get_checks_for_period_of_categories(chat_id, category_id, start_date, end_da
     global engine
 
     with Session(engine) as session:
-        query = (select(Actions).where(Actions.chat_id == chat_id, 
+        query = (select(Actions.status_id,
+                        Actions.category_id,
+                        Actions.chat_id,
+                        Actions.date,
+                        Actions.desc,
+                        Actions.value,
+                        Actions.id).where(Actions.chat_id == chat_id, 
                                        Actions.category_id == category_id,
                                         Actions.status_id == 1, 
                                         Actions.date >= start_date,
-                                        Actions.date <= end_date,
+                                        Actions.date < end_date,
                                         ).order_by(Actions.date))
-        checks = session.scalars(query).all()
+        checks = session.execute(query).all()
 
         orders = []
         for chk in checks:
@@ -332,4 +358,28 @@ def get_checks_for_period_of_categories(chat_id, category_id, start_date, end_da
 
         return orders
 
-    
+
+def get_all_amount_reservs_of_chat_id(chat_id):
+     global engine
+     with Session(engine) as session:
+        query = (select(func.coalesce(func.sum(ReservetBudget.amount),0)).where(ReservetBudget.chat_id == chat_id))
+
+        return session.scalar(query)
+
+
+def delete_reserve_by_id(chat_id, res_id):
+    global engine
+    with Session(engine) as session:
+        query = (delete(ReservetBudget).where(ReservetBudget.chat_id == chat_id,ReservetBudget.id == res_id))
+
+        result = session.execute(query)
+        session.commit()
+
+
+def chenge_end_date_reserve_by_id(chat_id, res_id, end_date):
+    global engine
+    with Session(engine) as session:
+        query = (update(ReservetBudget).where(ReservetBudget.chat_id == chat_id,ReservetBudget.id == res_id).values(end_date=end_date))
+
+        result = session.execute(query)
+        session.commit()

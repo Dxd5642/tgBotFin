@@ -1,5 +1,5 @@
 from database.database import * 
-from datetime import datetime
+from datetime import datetime, timedelta
 import calendar
 import re
 from rapidfuzz import process, fuzz
@@ -8,17 +8,44 @@ from categories import *
 from graphs import graph_simple_analys
 
 
+
+dict_user_reser_cat = {} # chat_id = ["Категории"]
+
+async def on_startup():
+    print("Бот запускается...")
+    users = get_users()
+    for user in users:
+        cats = [(i[1], i[5]) for i in get_all_reserve_budget(user)]
+        dict_user_reser_cat[str(user)] = cats
+
 def get_name_month(num):
     num = int(num) - 1
     months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"]
     return months[num]
+
+def is_valid_date(value: str) -> bool:
+    for fmt in ("%d.%m.%y", "%d.%m.%Y"):
+        try:
+            datetime.strptime(value, fmt)
+            return True
+        except ValueError:
+            pass
+
+def parse_date(value: str):
+    for fmt in ("%d.%m.%y", "%d.%m.%Y"):
+        try:
+            return datetime.strptime(value, fmt).date()
+        except ValueError:
+            pass
+
+    return None
+
 
 
 def handler_just_message_get_all_value(message):
     if not check_mountly_sum_this_month(message.chat.id):
         total_income, total_expense, start_balance, end_balance = get_last_month_user(message.chat.id)
         create_mountly_sum(message.chat.id, end_balance)
-
 
     text = str(message.text)
     chat_id = message.chat.id
@@ -101,6 +128,7 @@ def handler_just_message(message):
 
         date = datetime.strptime(date, "%d.%m.%Y")
         cat_id = get_category_id(cat)
+
         if type_check:
             add_income(chat_id, value, desc, date, cat=cat_id)
             balance = update_month_notes(chat_id, True, float(value))
@@ -108,7 +136,30 @@ def handler_just_message(message):
         else:
             add_expenses(chat_id, value, desc, date, cat_id)
             balance = update_month_notes(chat_id, False, float(value))
-            return f"❌    ❌    ❌    ❌    ❌\n\n🎟️ Создан новый чек на {date.strftime("%d.%m.%Y")}\n\n📉 Расход: {value} руб.\n\n✍️ Описание: {desc}\n\n📚 Категория: {cat}\n\n💰 Текущий баланс: {balance} руб.\n\n❌    ❌    ❌    ❌    ❌"
+
+            text_res = ""
+    
+            if dict_user_reser_cat[str(chat_id)]:
+                for reservs in dict_user_reser_cat[str(chat_id)]:
+                    if cat_id == reservs[0]:
+                        res_info = get_reserved_budget_info(chat_id, reservs[1])
+                        text_res = (
+                            "=============================\n\n"
+                            f"🔒 <b>Лимит категории «{res_info['cat_name']}»</b>\n\n"
+                            f"💵 Остаток: <b>{res_info['remaining']} ₽</b> "
+                            f"из {res_info['amount']} ₽\n"
+                            f"📆 Дней осталось: <b>{res_info['days_left']}</b>\n\n"
+
+                            f"🎯 <b>Сегодня доступно: "
+                            f"{res_info['today_available']} ₽</b>\n"
+                            f"🛒 Сегодня потрачено: {res_info['spent_today']} ₽\n"
+                            f"📊 Дневная норма: {res_info['daily_limit']} ₽\n\n"
+
+                            f"📅 Период: "
+                            f"{res_info['start_date']} — {res_info['end_date']}\n"
+                        )
+
+            return f"❌    ❌    ❌    ❌    ❌\n\n🎟️ Создан новый чек на {date.strftime("%d.%m.%Y")}\n\n📉 Расход: {value} руб.\n\n✍️ Описание: {desc}\n\n📚 Категория: {cat}\n\n💰 Текущий баланс: {balance} руб.\n\n{text_res}❌    ❌    ❌    ❌    ❌"
 
     except EOFError as e:
         return str(e)
@@ -224,9 +275,11 @@ def get_info_order(order_id):
 def create_reserve(chat_id, category_id, amount, dates):
     try:
         create_reserve_budget(chat_id, category_id, amount, dates[0], dates[1])
+        dict_user_reser_cat[chat_id].append(category_id)
         return "Зарезервированный счет успешно создан!"
     except:
         return "При создании зарезервированного счета произошло ошибка("
+
 
 # Получение списка резервов
 def get_all_reserve(chat_id):
@@ -235,10 +288,9 @@ def get_all_reserve(chat_id):
     if len(reservs) == 0:
         return "На данный момент список пуст 😥", []
 
-    mes = "⬇️ Созданные зарезервированные счета: ⬇️", reservs
+    return "⬇️ Зарезервированные счета: ⬇️", reservs
+    
 
-# Нужна функция для получения всей информации по какому либо резерву, в ней будем получать основные данные и подготавливать обратное сообщение
-# Нужна функция для получения информации по дневным лимитам
 
 def get_reserved_spent(chat_id, start_date, end_date, category_id):
     orders = get_checks_for_period_of_categories(chat_id, category_id, start_date, end_date)
@@ -249,68 +301,186 @@ def get_reserved_spent(chat_id, start_date, end_date, category_id):
         value = i[1]
         spent += float(value)
 
+
     return spent
+def get_reserved_budget_info(chat_id, reserve_id):
+    today = datetime.today().replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0
+    )
 
-def get_reserved_budget_info(chat_id, category_id):
-    today = datetime.today()
-    reserve = get_reserve_budget(chat_id, category_id)
+    reserve = get_reserve_budget(
+        chat_id,
+        reserve_id
+    )
 
-    spent = get_reserved_spent(chat_id, reserve[2], reserve[3], category_id)
-    amount = reserve[0]
-    remaining = max(0, amount - spent)
+    amount = float(reserve[0])
+    start_date = reserve[2]
+    end_date = reserve[3]
+    category_id = reserve[-1]
 
-    if today < reserve[2]:
-        days_left = (reserve[3] - reserve[2]).days + 1
-        current_day_limit = (remaining / days_left if days_left > 0 else 0.0)
+    # ---------------------------------------------------------
+    # Если резерв ещё не начался
+    # ---------------------------------------------------------
+
+    if today < start_date:
+
+        spent = get_reserved_spent(
+            chat_id,
+            start_date,
+            end_date,
+            category_id
+        )
+
+        remaining = max(
+            0.0,
+            amount - spent
+        )
+
+        days_left = (
+            end_date - start_date
+        ).days + 1
+
+        current_day_limit = (
+            remaining / days_left
+            if days_left > 0
+            else 0.0
+        )
+
         spent_today = 0.0
         today_available = 0.0
 
-    elif today > reserve[3]:
+    # ---------------------------------------------------------
+    # Если резерв уже закончился
+    # ---------------------------------------------------------
+
+    elif today > end_date:
+
+        spent = get_reserved_spent(
+            chat_id,
+            start_date,
+            end_date,
+            category_id
+        )
+
+        remaining = max(
+            0.0,
+            amount - spent
+        )
+
         days_left = 0
         current_day_limit = 0.0
         spent_today = 0.0
         today_available = 0.0
 
+    # ---------------------------------------------------------
+    # Резерв действует сегодня
+    # ---------------------------------------------------------
+
     else:
-        days_left = (reserve[3] - today).days + 1
-        current_day_limit = (remaining / days_left if days_left > 0 else 0.0)
-        records_today = get_reserved_spent(chat_id, today, today, category_id)
-        today_available = max(0.0, current_day_limit - records_today)
+
+        # Все расходы ДО сегодняшнего дня
+        spent_before_today = get_reserved_spent(
+            chat_id,
+            start_date,
+            today,
+            category_id
+        )
+
+        # Расходы ТОЛЬКО сегодня
+        spent_today = get_reserved_spent(
+            chat_id,
+            today,
+            today + timedelta(days=1),
+            category_id
+        )
+
+        # Общие расходы за весь период
+        spent = (
+            spent_before_today +
+            spent_today
+        )
+
+        # Остаток бюджета ДО сегодняшних трат
+        remaining_before_today = max(
+            0.0,
+            amount - spent_before_today
+        )
+
+        # Остаток бюджета с учётом сегодняшних трат
+        remaining = max(
+            0.0,
+            amount - spent
+        )
+
+        # Количество дней, включая сегодняшний
+        days_left = (
+            end_date - today
+        ).days + 1
+
+        # НОРМА НА СЕГОДНЯ
+        #
+        # ВАЖНО:
+        # здесь ещё нет сегодняшнего расхода
+        current_day_limit = (
+            remaining_before_today / days_left
+            if days_left > 0
+            else 0.0
+        )
+
+        # Сколько можно потратить ЕЩЁ сегодня
+        today_available = current_day_limit - spent_today
 
     return {
-        "amount": amount,
-        "spent": spent,
-        "remaining": remaining,
+        "cat_name": reserve[-2],
+        "amount": round(amount, 2),
+        "spent": round(spent, 2),
+        "remaining": round(remaining, 2),
         "days_left": days_left,
-        "daily_limit": current_day_limit,
-        "spent_today": spent_today,
-        "today_available": today_available,
-        "start_date": reserve[2], 
-        "end_date": reserve[3]
+        "daily_limit": round(current_day_limit, 2), #TODO также обновить аналитику за месяц
+        "spent_today": round(spent_today, 2),
+        "today_available": round(today_available, 2),
+        "start_date": start_date.strftime("%d.%m.%y"),
+        "end_date": end_date.strftime("%d.%m.%y")
     }
 
+def get_reserved_budget_of_cat(chat_id, reserve_id):
+    res_info = get_reserved_budget_info(chat_id, reserve_id)
 
-def get_reserved_budget_of_cat(chat_id, category):
-    cat_id = get_category_id(category)
-
-    res_info = get_reserved_budget_info(chat_id, cat_id)
-
-    mess = f"🔒 Зарезервированные деньги\n\n{category}\n💰 Выделено: {res_info["amount"]} ₽\n💸 Потрачено: {res_info["spent"]} ₽\n💵 Осталось: {res_info["remaining"]} ₽\n\n📅 Период:\n{res_info["start_date"]} — {res_info["end_date"]}\n\n📆 Осталось дней: {res_info["days_left"]}\n🎯 Сегодня можно: {res_info["daily_limit"]} ₽\n🛒 Потрачено сегодня: {res_info["spent_today"]} ₽\n✅ Осталось на сегодня: {res_info["today_available"]} ₽"
+    return f"🔒 Зарезервированные деньги\n\n{res_info["cat_name"]}\n💰 Выделено: {res_info["amount"]} ₽\n💸 Потрачено: {res_info["spent"]} ₽\n💵 Осталось: {res_info["remaining"]} ₽\n\n📅 Период:\n{res_info["start_date"]} — {res_info["end_date"]} (включительно)\n\n📆 Осталось дней: {res_info["days_left"]}\n🎯 Сегодня можно: {res_info["daily_limit"]} ₽\n🛒 Потрачено сегодня: {res_info["spent_today"]} ₽\n{'✅' if res_info["today_available"] > 0 else '❌'} Осталось на сегодня: {res_info["today_available"]} ₽"
 
 
-def is_valid_date(value: str) -> bool:
-    for fmt in ("%d.%m.%y", "%d.%m.%Y"):
+def check_balance_for_create_reserv(chat_id, res_bal):
+    date = str(datetime.today().strftime("%d.%m.%Y"))
+    balance = get_balance(chat_id, date.split('.')[2], date.split('.')[1])
+
+
+def check_balance_and_amount_for_create_reserv(chat_id):
+    date = str(datetime.today().strftime("%d.%m.%Y"))
+    balance = get_balance(chat_id, date.split('.')[2], date.split('.')[1])
+    amount_all_reservs = get_all_amount_reservs_of_chat_id(chat_id)
+    return max(balance - amount_all_reservs, 0.0)
+
+
+def delete_reserv_by_chat_id_and_id(chat_id, res_id):
+    try:
+        delete_reserve_by_id(chat_id, res_id)
+        return "😊 Зарезервированный счет успешно удален!"
+
+    except Exception as e:
+        return "😥 При удалении зарезервированного счета произошла ошибка("
+
+
+def change_date_reserv(chat_id, res_id, date):
+    if is_valid_date(date):
+        date = parse_date(date)
         try:
-            datetime.strptime(value, fmt)
-            return True
-        except ValueError:
-            pass
+            chenge_end_date_reserve_by_id(chat_id, res_id, date)
+            return "😊 Дата окончания вашего счета успешно изменена!"
 
-def parse_date(value: str):
-    for fmt in ("%d.%m.%y", "%d.%m.%Y"):
-        try:
-            return datetime.strptime(value, fmt).date()
-        except ValueError:
-            pass
-
-    return None
+        except Exception as e:
+            return "😥 При изменении даты окончания вашего зав. счета произошла ошибка("
+    else:
+        return "Неверная дата"
