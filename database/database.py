@@ -383,3 +383,24 @@ def chenge_end_date_reserve_by_id(chat_id, res_id, end_date):
 
         result = session.execute(query)
         session.commit()
+
+
+def increase_reserve_amount(chat_id, reserve_id, add_amount):
+    global engine
+
+    with Session(engine) as session:
+        query = (
+            update(ReservetBudget)
+            .where(
+                ReservetBudget.chat_id == chat_id,
+                ReservetBudget.id == reserve_id
+            )
+            .values(
+                amount=ReservetBudget.amount + add_amount
+            )
+        )
+
+        result = session.execute(query)
+        session.commit()
+
+        return result.rowcount > 0

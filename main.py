@@ -16,7 +16,7 @@ from aiogram.fsm.context import FSMContext
 
 from btns import *
 from database import database
-from services import reg_user, handler_just_message, handler_just_message_get_all_value, get_analytic_month, get_balance_user, get_analytic_month, get_info_order, get_all_reserve, is_valid_date, parse_date, create_reserve, get_reserved_budget_of_cat, on_startup, check_balance_and_amount_for_create_reserv, delete_reserv_by_chat_id_and_id, change_date_reserv
+from services import reg_user, handler_just_message, handler_just_message_get_all_value, get_analytic_month, get_balance_user, get_analytic_month, get_info_order, get_all_reserve, is_valid_date, parse_date, create_reserve, get_reserved_budget_of_cat, on_startup, check_balance_and_amount_for_create_reserv, delete_reserv_by_chat_id_and_id, change_date_reserv, adding_amount_for_reserve_budget
 from states import Registr, AgreeCreateCheck, CreateReserveBudget, DeketeReserveBudget, ChangeDateReserveBudget, AddingAmountReserveBudget
 from generate_excel import generate_excel_report
 
@@ -177,7 +177,7 @@ async def callback_open_reserve_budget(message: Message, state: FSMContext):
     balance = message.text
     try:
         balance = float(balance)
-        if check_balance_and_amount_for_create_reserv(message.chat.id) > balance:
+        if check_balance_and_amount_for_create_reserv(message.chat.id) >= balance:
             await state.update_data(balance = balance)
             await message.answer(text="📆 Введите сроки вашего зарезервированного счета 📆\n\nОтправьте сообщение вида: 01.01.26-01.02.26", reply_markup=get_cancel_btn_reserve())
             await state.set_state(CreateReserveBudget.waiting_date)
@@ -306,28 +306,36 @@ async def callback_open_reserve_budget(callback: CallbackQuery, state: FSMContex
     await state.set_state(AddingAmountReserveBudget.waiting_date)
     await state.update_data(reserv_id = res_id)
 
-    # Возвращение с кнопочками get_reserve_menu 
-    await callback.message.edit_text(text="📆 Введите новую дату окончания периода зарезервированного счета 📆\n\nДату необходимо ввести в виде: 01.01.2026", reply_markup=get_btn_cancel_change_date_reserv(res_id))
+    available_balance = check_balance_and_amount_for_create_reserv(callback.message.chat.id)
+    
+    await callback.message.edit_text(text=f"⬇️ Введите сумму, на которую вы хотите увеличить ваш зав. счет ⬇️\n\n❗ Обращаем ваше ванимание, что вы не можете увеличить зав. счет на сумму более :{available_balance} руб. ❗", reply_markup=get_btn_cancel_change_amount_reserv(res_id))
     await callback.answer()
 
+@db.message(AddingAmountReserveBudget.waiting_date)
+async def callback_open_reserve_budget(message: Message, state: FSMContext):
+    balance = message.text
+    data = await state.get_data()
+    try:
+        balance = float(balance)
+        if check_balance_and_amount_for_create_reserv(message.chat.id) >= balance:
 
-# @db.message(ChangeDateReserveBudget.waiting_date)
-# async def callback_open_reserve_budget(message: Message, state: FSMContext):
-#     data = await state.get_data()
-#     date = str(message.text)
-#     text = change_date_reserv(message.chat.id, data['reserv_id'], date)
-#     if text == "Неверная дата":
-#         await message.answer(text="❗ Введена неправильная дата!❗\n\nОтправьте сообщение вида: 01.01.26 или 01.01.2026", reply_markup=get_btn_cancel_change_date_reserv(data['reserv_id']))
-#     else:
-#         await message.answer(text=text, reply_markup=get_btn_retern_after_change_date_reserv(data["reserv_id"]))
-#         await state.clear()
+            # Функция пополнения счета
+            text = adding_amount_for_reserve_budget(message.chat.id, data['reserv_id'], balance)
+
+            await message.answer(text=text, reply_markup=get_btn_retern_after_change_date_reserv(data['reserv_id']))
+            await state.clear()
+        else:
+            await message.answer(text=f"❗ Вы не можете пополнить зарезервированный счет на сумму больше достпной  ❗\n\nВведите сумму в пределах {check_balance_and_amount_for_create_reserv(message.chat.id)} руб.", reply_markup=get_btn_cancel_change_amount_reserv(data['reserv_id']))
+    except:
+        await message.answer(text="❗ Введен неправильная сумма!❗\n\nВведите сумму в виде: 600 600.0", reply_markup=get_btn_cancel_change_amount_reserv(data['reserv_id']))
+        
 
 
-# @db.callback_query(F.data.startswith("cancel_change_date_for_reserve_"))
-# async def callback_open_reserve_budget(message: Message, state: FSMContext):
-#     data = await state.get_data()
-#     await state.clear()
-#     await message.edit_text(text="❌ Отменено изменение даты в зарезервированном счете", reply_markup=get_btn_retern_after_change_date_reserv(data["reseve_id"]))
+@db.callback_query(F.data.startswith("cancel_change_amount_for_reserve_"))
+async def callback_open_reserve_budget(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    await state.clear()
+    await callback.message.edit_text(text="❌ Отменено пополнение зарезервированного счета", reply_markup=get_btn_retern_after_change_date_reserv(data["reserv_id"]))
 
 
 # =======================================
