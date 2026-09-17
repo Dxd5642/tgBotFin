@@ -2,14 +2,24 @@ from datetime import datetime, date
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, select, DateTime, func, desc, extract, delete, update
 from database.tables import *
-from categories import *
+from dotenv import load_dotenv
+import os
+
+from services.transactions.categories import *
+
+from pathlib import Path
+BASE_DIR = Path(__file__).resolve().parent
+
+load_dotenv(str(BASE_DIR / ".env"))
+
 
 engine = None
+DB_PATH = os.getenv("DATABASE_PATH") or "data/database.db"
 
 
 def init_database():
     global engine
-    engine = create_engine("sqlite:///data/database.db", echo=False)
+    engine = create_engine(f"sqlite:///{DB_PATH}", echo=False)
     Base.metadata.create_all(engine)
 
     with Session(engine) as session:

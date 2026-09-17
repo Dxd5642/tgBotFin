@@ -34,17 +34,73 @@ Python 3.10+.
 
 ```
 finAnalysisBot/
-├── main.py                 # точка входа, хендлеры
-├── services.py             # бизнес-логика
-├── btns.py                 # inline-клавиатуры
-├── states.py               # FSM
-├── categories.py           # категории и ключевые слова
-├── generate_excel.py       # Excel-отчёт
-├── graphs/                 # график аналитики
-└── database/               # модели и доступ к SQLite
+│
+├── main.py                 -- Точка входа в приложение
+│
+├── handlers/               -- Обработчики событий
+│   ├── common.py
+│   ├── registration.py
+│   ├── analytics.py
+│   ├── orders.py
+│   ├── transactions.py
+│   └── reserves.py
+│
+├── buttons/                -- Inline клавиатуры
+│   ├── main_menu.py
+│   ├── transactions.py
+│   ├── orders.py
+│   │
+│   └── reserves/
+│       ├── menu.py
+│       ├── create.py
+│       ├── delete.py
+│       └── edit.py
+│   
+├── services/               -- Бизнес-логика
+│   ├──generate_excel.py
+│   │
+│   ├──graph_simple_analys.py
+│   │
+│   ├── transactions/
+│   │   ├── parser.py
+│   │   └── create.py
+│   │
+│   ├── analytics/
+│   │   ├── monthly.py
+│   │   └── balance.py
+│   │
+│   ├── orders/
+│   │   └── info.py
+│   │
+│   ├── registration/
+│   │   └── register.py
+│   │
+│   └── reserves/
+│       ├── cache.py
+│       ├── create.py
+│       ├── list.py
+│       ├── info.py
+│       ├── delete.py
+│       ├── change_date.py
+│       └── add_amount.py
+│
+├── database/               -- Работа с базой данных
+│   ├── tables.py
+│   └── database.py
+│
+├── schemas/                -- Состояния
+│   ├── create_order.py
+│   ├── registration.py
+│   └── delete.py
+│
+├── storage/                -- Кеш
+│   └── reserve_cache.py
+│
+└── data/                   -- База данных
+    └── database.db
 ```
 
-База создаётся автоматически при первом запуске: `database/database.db`.
+База создаётся автоматически при первом запуске: `data/database.db`.
 
 ## Запуск
 
@@ -74,6 +130,7 @@ pip install -r requirements.txt
 
 ```env
 BOT_TOKEN=123456:ABC-your-telegram-bot-token
+DATABASE_PATH="/data/database.db"
 ```
 
 4. Запустите бота:
@@ -97,5 +154,6 @@ python main.py
 | Переменная | Описание |
 |---|---|
 | `BOT_TOKEN` | Токен Telegram-бота |
+| `DATABASE_PATH` | Путь к файлу БД |
 
 Файл `.env` не коммитится (см. `.gitignore`).
