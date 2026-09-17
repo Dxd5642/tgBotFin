@@ -9,7 +9,7 @@ engine = None
 
 def init_database():
     global engine
-    engine = create_engine("sqlite:///database/database.db", echo=False)
+    engine = create_engine("sqlite:///data/database.db", echo=False)
     Base.metadata.create_all(engine)
 
     with Session(engine) as session:
