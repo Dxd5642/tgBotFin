@@ -280,6 +280,8 @@ def get_top_expense_cat(chat_id):
     with Session(engine) as session:
         cats = (select(Category.name, func.sum(Actions.value).label("total_sum")).select_from(Actions).join(Category, Actions.category_id == Category.id).where(Actions.chat_id == chat_id, Actions.status_id == 0).group_by(Category.name).order_by(desc("total_sum")))
         res = session.execute(cats).all()
+        if len(res) == 0:
+            return [(None, None)]
 
         return res
 
