@@ -198,7 +198,7 @@ async def callback_open_reserve_budget(message: Message, state: FSMContext):
         date2 = parse_date(dates[1])
         await state.update_data(end_date = date2)
         data = await state.get_data()
-        await message.answer(text=f"Проверьте введенные данные для создания зарезервированного счета:\n\n🚩 Выбранная категория ➡️ {data["cat"]}\n💵 Выделенный баланс ➡️ {data["balance"]}\n📆 Сроки ➡️ {data["start_date"]} - {data["end_date"]}\n\nВсе верно?", reply_markup=get_agree_btns_create_reserve())
+        await message.answer(text=f"Проверьте введенные данные для создания зарезервированного счета:\n\n🚩 Выбранная категория ➡️ {data['cat']}\n💵 Выделенный баланс ➡️ {data['balance']}\n📆 Сроки ➡️ {data['start_date']} - {data['end_date']}\n\nВсе верно?", reply_markup=get_agree_btns_create_reserve())
 
     else:
         await message.answer(text="❗ Введены неправильные даты!❗\n\nОтправьте сообщение вида: 01.01.26-01.02.26", reply_markup=get_cancel_btn_reserve())
