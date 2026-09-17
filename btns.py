@@ -119,7 +119,7 @@ def get_reserve_menu(reserves):
         cat_name = reserve[-2]
         res_id = reserve[-1]
         builder.add(
-            InlineKeyboardButton(text=f"💈 {cat_name}: {reserve[2].strftime("%d.%m.%y")} - {reserve[3].strftime("%d.%m.%y")} 📆", callback_data=f"get_reserve_by_id_{res_id}"),
+            InlineKeyboardButton(text=f"💈 {cat_name}: {reserve[2].strftime('%d.%m.%y')} - {reserve[3].strftime('%d.%m.%y')} 📆", callback_data=f"get_reserve_by_id_{res_id}"),
         )
 
     builder.add(

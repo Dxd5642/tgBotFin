@@ -132,14 +132,14 @@ def handler_just_message(message):
         if type_check:
             add_income(chat_id, value, desc, date, cat=cat_id)
             balance = update_month_notes(chat_id, True, float(value))
-            return f"✅    ✅    ✅    ✅    ✅\n\n🎟️ Создан новый чек на {date.strftime("%d.%m.%Y")}\n\n📈 Доход: {value} руб.\n\n✍️Описание: {desc}\n\n📚 Категория: {cat}\n\n💰 Текущий баланс: {balance}\n\n✅    ✅    ✅    ✅    ✅"
+            return f"✅    ✅    ✅    ✅    ✅\n\n🎟️ Создан новый чек на {date.strftime('%d.%m.%Y')}\n\n📈 Доход: {value} руб.\n\n✍️Описание: {desc}\n\n📚 Категория: {cat}\n\n💰 Текущий баланс: {balance}\n\n✅    ✅    ✅    ✅    ✅"
         else:
             add_expenses(chat_id, value, desc, date, cat_id)
             balance = update_month_notes(chat_id, False, float(value))
 
             text_res = ""
     
-            if dict_user_reser_cat[str(chat_id)]:
+            if str(chat_id) in dict_user_reser_cat:
                 for reservs in dict_user_reser_cat[str(chat_id)]:
                     if cat_id == reservs[0]:
                         res_info = get_reserved_budget_info(chat_id, reservs[1])
@@ -159,7 +159,7 @@ def handler_just_message(message):
                             f"{res_info['start_date']} — {res_info['end_date']}\n"
                         )
 
-            return f"❌    ❌    ❌    ❌    ❌\n\n🎟️ Создан новый чек на {date.strftime("%d.%m.%Y")}\n\n📉 Расход: {value} руб.\n\n✍️ Описание: {desc}\n\n📚 Категория: {cat}\n\n💰 Текущий баланс: {balance} руб.\n\n{text_res}❌    ❌    ❌    ❌    ❌"
+            return f"❌    ❌    ❌    ❌    ❌\n\n🎟️ Создан новый чек на {date.strftime('%d.%m.%Y')}\n\n📉 Расход: {value} руб.\n\n✍️ Описание: {desc}\n\n📚 Категория: {cat}\n\n💰 Текущий баланс: {balance} руб.\n\n{text_res}❌    ❌    ❌    ❌    ❌"
 
     except EOFError as e:
         return str(e)
@@ -454,7 +454,7 @@ def get_reserved_budget_info(chat_id, reserve_id):
 def get_reserved_budget_of_cat(chat_id, reserve_id):
     res_info = get_reserved_budget_info(chat_id, reserve_id)
 
-    return f"🔒 Зарезервированные деньги\n\n{res_info["cat_name"]}\n💰 Выделено: {res_info["amount"]} ₽\n💸 Потрачено: {res_info["spent"]} ₽\n💵 Осталось: {res_info["remaining"]} ₽\n\n📅 Период:\n{res_info["start_date"]} — {res_info["end_date"]} (включительно)\n\n📆 Осталось дней: {res_info["days_left"]}\n🎯 Сегодня можно: {res_info["daily_limit"]} ₽\n🛒 Потрачено сегодня: {res_info["spent_today"]} ₽\n{'✅' if res_info["today_available"] > 0 else '❌'} Осталось на сегодня: {res_info["today_available"]} ₽"
+    return f"🔒 Зарезервированные деньги\n\n{res_info['cat_name']}\n💰 Выделено: {res_info['amount']} ₽\n💸 Потрачено: {res_info['spent']} ₽\n💵 Осталось: {res_info['remaining']} ₽\n\n📅 Период:\n{res_info['start_date']} — {res_info['end_date']} (включительно)\n\n📆 Осталось дней: {res_info['days_left']}\n🎯 Сегодня можно: {res_info['daily_limit']} ₽\n🛒 Потрачено сегодня: {res_info['spent_today']} ₽\n{'✅' if res_info['today_available'] > 0 else '❌'} Осталось на сегодня: {res_info['today_available']} ₽"
 
 
 def check_balance_for_create_reserv(chat_id, res_bal):
