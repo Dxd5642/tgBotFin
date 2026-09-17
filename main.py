@@ -1,4 +1,5 @@
 import os
+from aiohttp.http import HttpParser
 from dotenv import load_dotenv
 from pathlib import Path
 import asyncio
@@ -68,7 +69,7 @@ async def callback_sometging(callback: CallbackQuery):
 
 @db.callback_query(F.data.startswith("my_balance"))
 async def callback_sometging(callback: CallbackQuery):
-    await callback.message.edit_text(get_balance_user(callback.from_user.id), reply_markup=get_btn_back())
+    await callback.message.edit_text(get_balance_user(callback.from_user.id), parse_mode="HTML", reply_markup=get_btn_back())
     await callback.answer()
 
 
@@ -212,9 +213,6 @@ async def callback_open_reserve_budget(callback: CallbackQuery, state: FSMContex
 
     await callback.message.edit_text(text="Зарезервированный счет успешно создан!", reply_markup=get_btn_back())
     await callback.answer()
-
-    # сразу выводим инфу через get_reserved_budget_of_cat
-    
 
 
 

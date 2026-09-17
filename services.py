@@ -71,6 +71,7 @@ def handler_just_message_get_all_value(message):
     if found_date:
         text = text.replace(found_date, "")
 
+
     text = text.strip()
 
     if str(date).count(".") == 1: date = f"{date}.{datetime.today().strftime('%Y')}"
@@ -171,7 +172,23 @@ def handler_just_message(message):
 def get_balance_user(chat_id):
     date = str(datetime.today().strftime("%d.%m.%Y"))
     balance = get_balance(chat_id, date.split('.')[2], date.split('.')[1])
-    return f"⌛ На {date} ваш баланс составляет:\n\n💰 {balance} руб"
+
+    text_cats = ""
+    main_balance = balance
+
+    if str(chat_id) in dict_user_reser_cat:
+        for reservs in dict_user_reser_cat[str(chat_id)]:
+            res_info = get_reserved_budget_info(chat_id, reservs[1])
+            main_balance -= float(res_info['amount'])
+            text_cats += ("=======================\n\n"
+                f"🔒 <b>Лимит по категории «{res_info['cat_name']}»</b>\n"
+                f"💵 Остаток: <b>{res_info['remaining']} ₽</b> "
+                f"из {res_info['amount']} ₽\n"
+            )
+
+    balance_text = f"⌛ Данные на {date} число:\n\n💰 Общий баланс: {balance} руб" + (f"\n💎 Баланс на прочие расходы: {main_balance}\n" + text_cats if text_cats != "" else "")
+
+    return balance_text
 
 
 def get_analytic_month(chat_id, month = None, year = None):
@@ -280,7 +297,9 @@ def get_info_order(order_id):
 def create_reserve(chat_id, category_id, amount, dates):
     try:
         create_reserve_budget(chat_id, category_id, amount, dates[0], dates[1])
-        dict_user_reser_cat[chat_id].append(category_id)
+        cat_list = [(i[1], i[5]) for i in get_all_reserve_budget(chat_id)]
+        del dict_user_reser_cat[chat_id]
+        dict_user_reser_cat[chat_id] = cat_list
         return "Зарезервированный счет успешно создан!"
     except:
         return "При создании зарезервированного счета произошло ошибка("
@@ -472,6 +491,7 @@ def check_balance_and_amount_for_create_reserv(chat_id):
 def delete_reserv_by_chat_id_and_id(chat_id, res_id):
     try:
         delete_reserve_by_id(chat_id, res_id)
+        del dict_user_reser_cat[chat_id]
         return "😊 Зарезервированный счет успешно удален!"
 
     except Exception as e:
