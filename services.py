@@ -73,7 +73,7 @@ def handler_just_message_get_all_value(message):
 
     text = text.strip()
 
-    if str(date).count(".") == 1: date = f"{date}.{datetime.today().strftime("%Y")}"
+    if str(date).count(".") == 1: date = f"{date}.{datetime.today().strftime('%Y')}"
     if str(date).count(".") == 2 and len(date) == 8: date[-2] = str(datetime.today().strftime("%Y"))
 
     flag_space = True
