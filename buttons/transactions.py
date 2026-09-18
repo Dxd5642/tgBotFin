@@ -1,7 +1,7 @@
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from categories import CATEGORIES_KEYWORDS
+from services.transactions.categories import CATEGORIES_KEYWORDS
 
 def get_btn_for_create_check():
     builder = InlineKeyboardBuilder()

@@ -1,7 +1,7 @@
 from database.database import * 
 from datetime import datetime
 import calendar
-from categories import *
+from services.transactions.categories import *
 
 from services import graph_simple_analys
 

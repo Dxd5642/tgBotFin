@@ -19,7 +19,7 @@ from services.reserves.delete import *
 from services.reserves.info import *
 from services.reserves.list import *
 
-from schemas import CreateReserveBudget, DeleteReserveBudget, ChangeDateReserveBudget, AddingAmountReserveBudget
+from schemas.reserve import CreateReserveBudget, DeleteReserveBudget, ChangeDateReserveBudget, AddingAmountReserveBudget
 
 
 router = Router()

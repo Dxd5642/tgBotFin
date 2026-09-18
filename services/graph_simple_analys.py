@@ -1,7 +1,6 @@
 import io
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from datetime import datetime
 from collections import defaultdict
 
 from database.database import get_all_checks
@@ -21,9 +20,9 @@ def create_action_list(chat_id, date):
         amount = act[1]     
         act_date = act[3]  
 
-        if act_type == 0:
+        if act_type == 1:
             daily_totals[act_date] -= amount
-        elif act_type == 1:
+        elif act_type == 2:
             daily_totals[act_date] += amount
 
     actions = [
@@ -34,7 +33,7 @@ def create_action_list(chat_id, date):
     return actions
 
 
-def generate_balance_chart(start_balance: float, actions: list) -> io.BytesIO: #TODO Переделать тута, а то хуня какая - то
+def generate_balance_chart(start_balance: float, actions: list) -> io.BytesIO:
 
     dates = []
     balances = []
@@ -60,10 +59,9 @@ def generate_balance_chart(start_balance: float, actions: list) -> io.BytesIO: #
 
     ax.axhline(y=start_balance, color='gray', linestyle='--', alpha=0.6, label='Старт месяца')
 
-    # 3. Оформление осей и сетки
     ax.grid(True, linestyle=':', alpha=0.6)
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m')) # Формат даты: "07.08"
-    fig.autofmt_xdate() # Поворачиваем даты под углом, чтобы не накладывались
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m')) 
+    fig.autofmt_xdate() 
 
     ax.axhline(
         y=start_balance,
@@ -79,16 +77,14 @@ def generate_balance_chart(start_balance: float, actions: list) -> io.BytesIO: #
     ax.set_ylabel("Сумма (₽)", fontsize=10)
     ax.legend(loc="upper left")
 
-    # Убираем лишние рамки сверху и справа
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
     plt.tight_layout()
 
-    # 4. Сохраняем график в буфер памяти (BytesIO) без записи на диск
     buf = io.BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight')
     buf.seek(0)
-    plt.close(fig) # Закрываем фигуру, чтобы не забивать оперативку
+    plt.close(fig)
 
     return buf

@@ -1,4 +1,3 @@
-# ПРОБНЫЙ ВАРИАНТ, НЕ ТЕСТИРОВАЛСЯ
 
 import io
 import pandas as pd
@@ -12,7 +11,6 @@ from sqlalchemy.orm import Session
 
 
 def generate_excel_report(chat_id: int) -> BufferedInputFile:
-    """Генерирует красивый Excel-отчёт по финансам пользователя."""
 
     import io
     import pandas as pd
@@ -73,9 +71,7 @@ def generate_excel_report(chat_id: int) -> BufferedInputFile:
 
             operation_type = record.type or "Неизвестно"
 
-            # Определяем знак суммы.
-            # Расходы хранятся отрицательными.
-            # Доходы — положительными.
+
             value = float(record.value or 0)
 
             if "списание" in operation_type.lower():
@@ -136,8 +132,6 @@ def generate_excel_report(chat_id: int) -> BufferedInputFile:
             start_balance = float(summary.start_balance or 0)
             end_balance = float(summary.end_balance or 0)
 
-            # Если в summary есть более актуальные значения,
-            # используем их.
             if summary.total_income is not None:
                 income = float(summary.total_income)
 
@@ -394,7 +388,7 @@ def generate_excel_report(chat_id: int) -> BufferedInputFile:
 
         ws_summary.row_dimensions[1].height = 35
 
-        # Заголовки таблицы
+
         for cell in ws_summary[3]:
             cell.font = Font(
                 bold=True,
@@ -411,7 +405,6 @@ def generate_excel_report(chat_id: int) -> BufferedInputFile:
                 vertical="center",
             )
 
-        # Основные данные
         for row in range(
             4,
             ws_summary.max_row + 1
@@ -433,14 +426,12 @@ def generate_excel_report(chat_id: int) -> BufferedInputFile:
                 bold=True
             )
 
-        # Денежные значения
         for row in range(9, 14):
             ws_summary.cell(
                 row,
                 2
             ).number_format = '#,##0.00 "₽"'
 
-        # Доход
         ws_summary["B10"].fill = PatternFill(
             "solid",
             fgColor=LIGHT_GREEN,
@@ -451,7 +442,6 @@ def generate_excel_report(chat_id: int) -> BufferedInputFile:
             color=GREEN,
         )
 
-        # Расход
         ws_summary["B11"].fill = PatternFill(
             "solid",
             fgColor=LIGHT_RED,
@@ -462,13 +452,11 @@ def generate_excel_report(chat_id: int) -> BufferedInputFile:
             color=RED,
         )
 
-        # Конечный баланс
         ws_summary["B13"].font = Font(
             size=14,
             bold=True,
         )
 
-        # Ширина
         ws_summary.column_dimensions["A"].width = 28
         ws_summary.column_dimensions["B"].width = 35
 
@@ -482,7 +470,6 @@ def generate_excel_report(chat_id: int) -> BufferedInputFile:
             ws_operations.dimensions
         )
 
-        # Шапка
         for cell in ws_operations[1]:
             cell.font = Font(
                 bold=True,
@@ -499,7 +486,6 @@ def generate_excel_report(chat_id: int) -> BufferedInputFile:
                 vertical="center",
             )
 
-        # Форматирование строк
         for row in range(
             2,
             ws_operations.max_row + 1
@@ -525,7 +511,6 @@ def generate_excel_report(chat_id: int) -> BufferedInputFile:
             for cell in ws_operations[row]:
                 cell.border = thin_border
 
-            # Доход
             if (
                 amount_cell.value is not None
                 and amount_cell.value > 0
@@ -540,7 +525,6 @@ def generate_excel_report(chat_id: int) -> BufferedInputFile:
                     fgColor=LIGHT_GREEN,
                 )
 
-            # Расход
             elif (
                 amount_cell.value is not None
                 and amount_cell.value < 0
@@ -555,7 +539,6 @@ def generate_excel_report(chat_id: int) -> BufferedInputFile:
                     fgColor=LIGHT_RED,
                 )
 
-        # Excel Table
         if ws_operations.max_row >= 2:
 
             table_ref = (
@@ -725,25 +708,17 @@ def generate_excel_report(chat_id: int) -> BufferedInputFile:
 
             income_chart = BarChart()
 
-            # Горизонтальные столбцы
             income_chart.type = "bar"
 
-            # Группировка
             income_chart.grouping = "clustered"
             income_chart.overlap = 0
 
-            # Заголовок
             income_chart.title = "Доходы по категориям"
 
-            # Для bar chart:
-            # X = значения
-            # Y = категории
             income_chart.y_axis.title = "Категория"
 
-            # Формат чисел на оси
             income_chart.x_axis.numFmt = '#,##0 "₽"'
 
-            # Данные ТОЛЬКО из колонки "Сумма"
             data = Reference(
                 ws_income,
                 min_col=2,
@@ -751,7 +726,6 @@ def generate_excel_report(chat_id: int) -> BufferedInputFile:
                 max_row=ws_income.max_row,
             )
 
-            # Категории из первой колонки
             categories = Reference(
                 ws_income,
                 min_col=1,

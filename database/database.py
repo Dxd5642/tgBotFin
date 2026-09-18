@@ -19,7 +19,7 @@ DB_PATH = os.getenv("DATABASE_PATH") or "data/database.db"
 
 def init_database():
     global engine
-    engine = create_engine(f"sqlite:///{DB_PATH}", echo=False)
+    engine = create_engine(f"sqlite://{DB_PATH}", echo=False)
     Base.metadata.create_all(engine)
 
     with Session(engine) as session:

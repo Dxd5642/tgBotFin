@@ -1,5 +1,5 @@
 from database.database import * 
-from categories import *
+from services.transactions.categories import *
 
 from services.transactions.categories import *
 
